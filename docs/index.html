@@ -5,8 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Strompreis-Planer</title>
 <meta name="description" content="Wann ist Strom heute und morgen am günstigsten? Börsenstrompreise in 15-Minuten-Schritten und ein Planer für E-Auto, Waschmaschine und Co.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta property="og:title" content="Strompreis-Planer">
+<meta property="og:description" content="Wann ist Strom heute am günstigsten und am grünsten? Börsenpreise in 15-Minuten-Schritten, ein Planer für E-Auto und Waschmaschine und Europas Preise im Vergleich.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://strompreis-planer.de/">
+<meta property="og:image" content="https://strompreis-planer.de/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Strompreis-Planer: Strom kostet nicht immer gleich viel. Nutzen Sie die günstigen Stunden.">
+<meta property="og:locale" content="de_DE">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="vendor/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <script>
   // ?theme= / ?lang= in the URL win, then saved choices; dark + German by default
   try {
@@ -18,6 +28,8 @@
   } catch {}
 </script>
 <style>
+/* Inter (SIL Open Font License, vendor/Inter-LICENSE.txt), served from this site so no visitor data goes to Google */
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("vendor/inter-latin.woff2") format("woff2"); }
 :root, :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #0f0f0e;
@@ -438,11 +450,11 @@ footer p { margin: 0 0 6px; }
 <footer>
   <p data-i18n="footerData"></p>
   <p data-i18n="footerNote"></p>
-  <p><a href="https://github.com/vulevu228/StrompreisPlaner" target="_blank" rel="noopener" data-i18n="sourceCode"></a></p>
+  <p><a href="privacy.html" data-i18n="privacy"></a> · <a href="https://github.com/vulevu228/StrompreisPlaner" target="_blank" rel="noopener" data-i18n="sourceCode"></a></p>
 </footer>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="vendor/chart.umd.min.js"></script><!-- Chart.js 4.4.1, MIT licence: vendor/Chart.js-LICENSE.md -->
 <script>
 /* ================= text (German / English) ================= */
 const T = {
@@ -457,7 +469,7 @@ const T = {
     endPrice: "Ihr Preis", spot: "Börsenpreis", greenToggle: "Ökostrom-Anteil", greenTitle: "Ökostrom-Anteil (Vorhersage)",
     legendRun: "Beste Zeit für Ihr Gerät", legendWindow: "Ihr Zeitraum", nowLine: "jetzt",
     planner: "Planer", plannerSub: "Wann läuft Ihr Gerät am günstigsten?", plannerSubFixed: "Wann läuft Ihr Gerät mit dem meisten Ökostrom?",
-    ev: "E-Auto", wash: "Wäsche", dish: "Geschirr", dryer: "Trockner", battery: "Speicher", heatpump: "Warmwasser", custom: "Sonstiges", heater: "Heizlüfter",
+    ev: "E-Auto", wash: "Wäsche", dish: "Geschirr", dryer: "Trockner", battery: "Speicher", heatpump: "Warmwasser", custom: "Sonstiges",
     energy: "Strombedarf", duration: "Laufzeit", power: "Ladeleistung", canPause: "Darf Pausen machen (z. B. beim Laden)", window: "Zeitraum",
     quickNow: "ab jetzt", quickMorning: "bis morgen 7 Uhr", quickEvening: "bis heute 18 Uhr", quickAll: "ganzer Zeitraum",
     bestStart: "Beste Startzeit", bestSlots: "Günstigste Ladezeiten", finished: "Fertig: {t}", pieces: "In {n} Abschnitten, fertig: {t}",
@@ -479,6 +491,7 @@ const T = {
     heroNowDyn: "Jetzt, dynamisch", heatSubFixed: "Preis mit dynamischem Tarif pro Stunde in den letzten {n} Tagen",
     tariffSubFixed: "Ihr Festpreis und der Vergleich mit einem dynamischen Tarif", fixedYours: "Ihr Festpreis",
     tomorrowVsDyn: "Morgen, dynamisch",
+    tariffFind: "<b>So finden Sie Ihre Werte:</b> Ihren Festpreis finden Sie auf der Stromrechnung als „Arbeitspreis“ (brutto, in ct/kWh). Bei einem dynamischen Tarif steht im Preisblatt Ihres Anbieters, was zum Börsenpreis dazukommt. Das Netzentgelt legt Ihr örtlicher Netzbetreiber fest, es ist deshalb je nach Wohnort verschieden.",
     ttYour: "Ihr Preis", ttDynWould: "Mit dynamischem Tarif", ttFixedWould: "Mit Festpreis", ttMarket: "Börsenpreis",
     bestGreen: "Beste Zeit: am grünsten", costFixed: "Kosten mit Festpreis", greenBox: "Ökostrom-Anteil", greenVsNow: "bei Start jetzt: {n} %",
     withDynamic: "Mit dynamischem Tarif", fixedNote: "Mit Festpreis kostet Ihr Gerät zu jeder Zeit gleich viel. Darum zeigt der Planer die Zeit mit dem meisten Ökostrom.",
@@ -487,7 +500,7 @@ const T = {
     typicalCheap: "Meist günstig: {h}", typicalPricey: "Meist teuer: {h}", heatLow: "günstig", heatHigh: "teuer",
     footerData: "Daten: Bundesnetzagentur | SMARD.de über energy-charts.info (Fraunhofer ISE), CC BY 4.0. Day-Ahead-Preise für Deutschland und Luxemburg, mehrmals am Tag aktualisiert.",
     footerNote: "Alle Angaben ohne Gewähr. Ihre Preise sind Schätzungen und hängen von Ihren Einstellungen ab.",
-    sourceCode: "Quellcode auf GitHub", slotAt: "{t}", greenShare: "Ökostrom {g} %", h: "Uhr",
+    sourceCode: "Quellcode auf GitHub", privacy: "Datenschutz", slotAt: "{t}", greenShare: "Ökostrom {g} %", h: "Uhr",
     euro: "{v} €", ct: "{v} ct", cheaperBy: "{v} günstiger", dearerBy: "{v} teurer", avgWord: "im Schnitt",
     dearerThan: "teurer als an {p} % der letzten {n} Tage",
     heroEyebrow: "Börsenstrompreise für Deutschland, jede Viertelstunde",
@@ -515,7 +528,7 @@ const T = {
     endPrice: "Your price", spot: "Market", greenToggle: "Renewable share", greenTitle: "Renewable share (forecast)",
     legendRun: "Best time for your appliance", legendWindow: "Your time window", nowLine: "now",
     planner: "Planner", plannerSub: "When does your appliance run cheapest?", plannerSubFixed: "When does your appliance run on the most renewable power?",
-    ev: "EV", wash: "Washer", dish: "Dishwasher", dryer: "Dryer", battery: "Battery", heatpump: "Hot water", custom: "Custom", heater: "Heater",
+    ev: "EV", wash: "Washer", dish: "Dishwasher", dryer: "Dryer", battery: "Battery", heatpump: "Hot water", custom: "Custom",
     energy: "Energy", duration: "Run time", power: "Charging power", canPause: "Can pause (e.g. charging)", window: "Time window",
     quickNow: "from now", quickMorning: "until 7 am tomorrow", quickEvening: "until 6 pm today", quickAll: "everything",
     bestStart: "Best start", bestSlots: "Cheapest charging times", finished: "Done {t}", pieces: "In {n} blocks, done {t}",
@@ -537,6 +550,7 @@ const T = {
     heroNowDyn: "Now, dynamic", heatSubFixed: "Dynamic-tariff price per hour, last {n} days",
     tariffSubFixed: "Your fixed price and the comparison with a dynamic tariff", fixedYours: "Your fixed price",
     tomorrowVsDyn: "Tomorrow, dynamic",
+    tariffFind: "<b>Where to find your numbers:</b> your fixed price is the “Arbeitspreis” on your bill (gross, ct/kWh). With a dynamic tariff, your supplier's price sheet lists what is added to the market price. Grid fees are set by your local grid operator, so they depend on where you live.",
     ttYour: "Your price", ttDynWould: "With a dynamic tariff", ttFixedWould: "At your fixed price", ttMarket: "Market price",
     bestGreen: "Best time: greenest", costFixed: "Cost at your fixed price", greenBox: "Renewable share", greenVsNow: "if started now: {n} %",
     withDynamic: "With a dynamic tariff", fixedNote: "On a fixed price your appliance costs the same at any time, so the planner shows the time with the most renewable power.",
@@ -545,7 +559,7 @@ const T = {
     typicalCheap: "Usually cheap: {h}", typicalPricey: "Usually expensive: {h}", heatLow: "cheap", heatHigh: "expensive",
     footerData: "Data: Bundesnetzagentur | SMARD.de via energy-charts.info (Fraunhofer ISE), CC BY 4.0. Day-ahead prices for the DE-LU bidding zone, updated several times a day.",
     footerNote: "No guarantee. Your prices are estimates based on your settings.",
-    sourceCode: "Source code on GitHub", slotAt: "{t}", greenShare: "Renewables {g} %", h: "",
+    sourceCode: "Source code on GitHub", privacy: "Privacy", slotAt: "{t}", greenShare: "Renewables {g} %", h: "",
     euro: "€{v}", ct: "{v} ct", cheaperBy: "{v} cheaper", dearerBy: "{v} more", avgWord: "avg.",
     dearerThan: "more expensive than {p} % of the last {n} days",
     heroEyebrow: "Market electricity prices for Germany, every quarter-hour",
@@ -574,7 +588,6 @@ const ICON = {
   dryer: '<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M10.5 11.5c1 .8 2 .8 3 0M10.5 14.5c1 .8 2 .8 3 0"/>',
   battery: '<rect x="3" y="7" width="16" height="10" rx="2"/><path d="M21 10.5v3M11.5 9 9 12.5h3.5L10 15"/>',
   heatpump: '<path d="M12 3v12M9 6c0-1.7 1.3-3 3-3s3 1.3 3 3v9a4 4 0 1 1-6 0z"/><path d="M12 15v2"/>',
-  heater: '<rect x="4" y="5" width="16" height="12" rx="2"/><path d="M8 9v4M12 9v4M16 9v4M7 17v2M17 17v2"/>',
   custom: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
 };
 // energy in kWh; fixed-program appliances have a run time, pausable ones a power in kW
@@ -585,7 +598,6 @@ const APPLIANCES = {
   dryer:    { energy: 2.5, min: 0.5, max: 5, step: 0.1, pause: false, hours: 2 },
   battery:  { energy: 5, min: 1, max: 20, step: 0.5, pause: true, power: 3, until: "all" },
   heatpump: { energy: 3, min: 0.5, max: 10, step: 0.5, pause: false, hours: 2 },
-  heater:   { energy: 2, min: 0.5, max: 6, step: 0.5, pause: false, hours: 1 },
   custom:   { energy: 2, min: 0.1, max: 80, step: 0.1, pause: false, hours: 1 },
 };
 
@@ -595,6 +607,7 @@ const DEFAULTS = { surcharge: 18, vat: true, fixed: 32, tariff: "fixed", mode: "
 const saved = (() => { try { return JSON.parse(localStorage.getItem("settings") || "{}"); } catch { return {}; } })();
 const S = { ...DEFAULTS, ...saved, data: null, slots: [], plan: {}, win: [0, 0] };
 for (const k of Object.keys(APPLIANCES)) S.plan[k] = { ...APPLIANCES[k], ...(saved.plan?.[k] || {}) };
+if (!APPLIANCES[S.appliance]) S.appliance = "ev";  // e.g. a saved choice of an appliance that was removed
 const persist = () => {
   try {
     const { surcharge, vat, fixed, tariff, mode, day, green, appliance } = S;
@@ -659,7 +672,8 @@ async function load() {
   // levels are relative to each day: cheapest third = cheap, most expensive third = expensive
   const byDay = {};
   S.slots = S.data.slots.map(([ts, price, green, signal]) => {
-    const s = { ts, price, green, signal, day: berlinParts(ts).date };
+    // the forecast is renewables vs. consumption and exceeds 100 % when Germany exports; for people "fully green" is 100 %
+    const s = { ts, price, green: green == null ? null : Math.min(100, green), signal, day: berlinParts(ts).date };
     (byDay[s.day] ??= []).push(price);
     return s;
   });
@@ -1145,7 +1159,8 @@ function renderTariff() {
     <div class="field"><div class="field-top"><span>${t(S.tariff === "fixed" ? "fixedYours" : "fixed")}</span><b id="fix-v">${ct(S.fixed, 0)}/kWh</b></div>
       <input type="range" id="fix" min="20" max="50" step="1" value="${S.fixed}"></div>
     <div class="tariff-sum" id="tariff-sum"></div>
-    <p class="hint">${t("tariffHint")}</p>`;
+    <p class="hint">${t("tariffHint")}</p>
+    <p class="hint">${t("tariffFind")}</p>`;
   const refresh = () => { persist(); renderTariffSum(); renderKpis(); updatePlan(); renderRails(); renderTariffPick(); };
   $("sur").oninput = (e) => { S.surcharge = +e.target.value; $("sur-v").textContent = `${ct(S.surcharge)}/kWh`; refresh(); };
   $("vat").onchange = (e) => { S.vat = e.target.checked; refresh(); };
@@ -1555,7 +1570,7 @@ function powerCycle(byUser = false) {
   }
   setTimeout(() => { if (S.power) S.power.busy = false; }, T + 50);
 }
-setTimeout(() => { powerCycle(); setInterval(powerCycle, 20000); }, 3200);  // after the curve has drawn, then 3 times a minute
+setTimeout(() => powerCycle(), 3200);  // once, after the curve has drawn; the switch can still be clicked
 document.fonts?.ready.then(() => { if (S.data) renderHero(); });  // the title ring needs the final font metrics
 
 let heroResize;
@@ -1676,33 +1691,27 @@ function railContent(st) {
          ${st ? `<p>In the last ${st.n} days: <b>${st.negHours} hours</b> on ${st.negDays} days.</p>` : ""}
          <p>You still pay grid fees, taxes and levies, so your final price usually stays positive, just very low.</p>`),
     card("book", de ? "Wichtige Begriffe" : "Glossary", de
-      ? `<dl class="gloss"><dt>Day-Ahead-Preis</dt><dd>Der Börsenpreis für den nächsten Tag. Er wird am Tag davor festgelegt.</dd>
-         <dt>Endpreis („Ihr Preis“)</dt><dd>Börsenpreis plus Netzentgelt, Steuern, Umlagen und Mehrwertsteuer. Das, was Sie wirklich bezahlen.</dd>
-         <dt>Dynamischer Tarif</dt><dd>Ihr Preis ändert sich mit dem Börsenpreis, jede Viertelstunde.</dd>
-         <dt>Smart Meter</dt><dd>Ein digitaler Stromzähler, der Ihren Verbrauch pro Viertelstunde misst. Ohne ihn gibt es keinen dynamischen Tarif.</dd>
-         <dt>§ 14a EnWG</dt><dd>Wenn Sie Wallbox oder Wärmepumpe beim Netzbetreiber als steuerbar anmelden, zahlen Sie weniger Netzentgelt.</dd>
-         <dt>Festpreis-Tarif</dt><dd>Sie zahlen für jede Kilowattstunde gleich viel, egal wann. So haben es die meisten Haushalte.</dd>
-         <dt>Arbeitspreis und Grundpreis</dt><dd>Der Arbeitspreis ist der Preis pro kWh. Der Grundpreis ist ein fester Betrag pro Monat, egal wie viel Strom Sie nutzen.</dd>
-         <dt>Kilowattstunde (kWh)</dt><dd>So wird Strom gemessen. Ein Gerät mit 1.000 Watt braucht in einer Stunde 1 kWh.</dd>
-         <dt>Netzentgelt</dt><dd>Geld für den Transport des Stroms durch die Leitungen. Es ist je nach Region verschieden hoch.</dd>
-         <dt>Merit-Order</dt><dd>Die Reihenfolge der Kraftwerke nach Kosten. Das teuerste Kraftwerk, das noch gebraucht wird, bestimmt den Preis.</dd>
-         <dt>Dunkelflaute</dt><dd>Kein Wind und keine Sonne, oft im Winter. Dann ist Strom besonders teuer.</dd></dl>
+      ? `<dl class="gloss"><dt>Day-Ahead-Auktion</dt><dd>Jeden Tag um 12 Uhr wird an der Strombörse der Strom für den nächsten Tag versteigert, für jede Viertelstunde einzeln. Alle Angebote und Gebote in Europa werden dabei zusammen gerechnet. Gegen 13 Uhr stehen die Preise fest.</dd>
+         <dt>Gebotszone DE-LU</dt><dd>Deutschland und Luxemburg bilden zusammen ein Preisgebiet. Darum gilt überall derselbe Börsenpreis, in Hamburg genauso wie in München, auch wenn das Netz im Norden mehr Windstrom hat.</dd>
+         <dt>Merit-Order</dt><dd>Die Kraftwerke werden nach ihren Kosten sortiert: zuerst Sonne und Wind, dann Kohle, zuletzt Gas. Das teuerste Kraftwerk, das noch gebraucht wird, bestimmt den Preis für alle.</dd>
+         <dt>Netzentgelt</dt><dd>Geld für den Transport des Stroms. Ihr örtlicher Netzbetreiber legt es fest, deshalb ist es von Region zu Region verschieden. Es ist oft der größte Teil Ihres Strompreises nach dem Strom selbst.</dd>
+         <dt>Umlagen und Stromsteuer</dt><dd>Gesetzliche Aufschläge pro kWh, zum Beispiel für Kraft-Wärme-Kopplung und Windparks auf dem Meer. Die EEG-Umlage gibt es seit Juli 2022 nicht mehr.</dd>
+         <dt>Konzessionsabgabe</dt><dd>Die Gemeinde bekommt Geld dafür, dass Stromleitungen unter ihren Straßen liegen. Wie hoch sie ist, hängt von der Größe der Gemeinde ab.</dd>
+         <dt>§ 14a EnWG</dt><dd>Wallbox oder Wärmepumpe beim Netzbetreiber als steuerbar anmelden: Bei einem Engpass darf er ihre Leistung kurz drosseln. Dafür zahlen Sie weniger Netzentgelt, auf Wunsch auch mit günstigeren Zeiten am Tag.</dd>
+         <dt>Arbeitspreis und Grundpreis</dt><dd>So steht es auf der Rechnung: Der Arbeitspreis gilt pro kWh, der Grundpreis ist ein fester Betrag im Monat. Hier geht es nur um den Arbeitspreis.</dd></dl>
          <p class="links">Mehr erfahren:
            <a href="https://www.smard.de" target="_blank" rel="noopener">SMARD</a> (Strommarktdaten der Bundesnetzagentur) ·
            <a href="https://www.energy-charts.info" target="_blank" rel="noopener">Energy-Charts</a> (Fraunhofer ISE) ·
            <a href="https://www.verbraucherzentrale.de" target="_blank" rel="noopener">Verbraucherzentrale</a> (unabhängige Beratung zu Tarifen) ·
            <a href="https://www.epexspot.com" target="_blank" rel="noopener">EPEX Spot</a> (die Strombörse)</p>`
-      : `<dl class="gloss"><dt>Day-ahead price</dt><dd>Market price for tomorrow, auctioned the day before.</dd>
-         <dt>Final price</dt><dd>Market price plus grid fees, taxes, levies and VAT. What you actually pay.</dd>
-         <dt>Dynamic tariff</dt><dd>Your price follows the market, quarter-hour by quarter-hour.</dd>
-         <dt>Smart meter</dt><dd>Measures your use per quarter-hour. Required for a dynamic tariff.</dd>
-         <dt>§ 14a EnWG</dt><dd>Register a wallbox or heat pump as controllable and pay reduced grid fees.</dd>
-         <dt>Fixed-price tariff</dt><dd>Every kilowatt-hour costs the same, whenever you use it. Most households have one.</dd>
-         <dt>Energy price and standing charge</dt><dd>The energy price is charged per kWh; the standing charge is a fixed monthly amount.</dd>
-         <dt>Kilowatt-hour (kWh)</dt><dd>The unit of electricity. A 1,000-watt appliance uses 1 kWh in one hour.</dd>
-         <dt>Grid fees</dt><dd>Paid for moving power through the lines; they differ by region.</dd>
-         <dt>Merit order</dt><dd>Power plants ranked by cost; the most expensive one still needed sets the price.</dd>
-         <dt>Dunkelflaute</dt><dd>No wind and no sun, mostly in winter. Power is especially expensive then.</dd></dl>
+      : `<dl class="gloss"><dt>Day-ahead auction</dt><dd>Every day at noon the exchange auctions the next day's power, each quarter-hour separately, with bids from all over Europe matched together. Prices are final around 1 pm.</dd>
+         <dt>Bidding zone DE-LU</dt><dd>Germany and Luxembourg form one price zone, so the market price is the same in Hamburg and Munich, even though the north has far more wind power.</dd>
+         <dt>Merit order</dt><dd>Plants are ranked by cost: sun and wind first, then coal, gas last. The most expensive plant still needed sets the price for everyone.</dd>
+         <dt>Grid fees</dt><dd>Paid for transporting power; set by your local grid operator, so they differ by region. Often the largest part of your price after the energy itself.</dd>
+         <dt>Levies and electricity tax</dt><dd>Statutory surcharges per kWh, e.g. for combined heat and power and offshore wind. The EEG levy was abolished in July 2022.</dd>
+         <dt>Concession fee</dt><dd>Paid to the municipality for running cables under its streets; the amount depends on the municipality's size.</dd>
+         <dt>§ 14a EnWG</dt><dd>Register a wallbox or heat pump as controllable: in a grid bottleneck the operator may briefly reduce its power. In return you pay lower grid fees, optionally with cheaper times of day.</dd>
+         <dt>Energy price and standing charge</dt><dd>As printed on the bill: the energy price is per kWh, the standing charge a fixed monthly amount. This site is only about the energy price.</dd></dl>
          <p class="links">Learn more:
            <a href="https://www.smard.de" target="_blank" rel="noopener">SMARD</a> (market data of the Federal Network Agency) ·
            <a href="https://www.energy-charts.info" target="_blank" rel="noopener">Energy-Charts</a> (Fraunhofer ISE) ·
