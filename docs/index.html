@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strompreis-Planer</title>
+<meta name="description" content="Wann ist Strom heute und morgen am günstigsten? Börsenstrompreise in 15-Minuten-Schritten und ein Planer für E-Auto, Waschmaschine und Co.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+  // ?theme= / ?lang= in the URL win, then saved choices; dark + German by default
+  try {
+    const q = new URLSearchParams(location.search);
+    const t = q.get("theme") || localStorage.getItem("theme");
+    if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+    const l = q.get("lang") || localStorage.getItem("lang");
+    if (l === "en" || l === "de") document.documentElement.lang = l;
+  } catch {}
+</script>
+<style>
+:root, :root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f0f0e;
+  --surface-1: #1a1a19;
+  --surface-2: #232321;
+  --surface-3: #2c2c29;
+  --border: #33332f;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #8f8e86;
+  --accent: #3987e5;
+  --accent-soft: rgba(57, 135, 229, .16);
+  --accent-ink: #ffffff;
+  --grid: #2c2c29;
+  /* price levels: diverging blue (cheap) / grey / red (expensive) */
+  --cheap: #3987e5; --normal: #6f6e68; --pricey: #e66767;
+  --cheap-soft: rgba(57, 135, 229, .16); --pricey-soft: rgba(230, 103, 103, .16);
+  --green: #199e70; --green-soft: rgba(25, 158, 112, .18);
+  --spark: #3fe0c8; --handle: #d93b3b; --steel: #6f6e68;
+  --window: rgba(255, 255, 255, .045);
+  --div-1: #9ec5f4; --div-2: #3987e5; --div-3: #1f4f8c; --div-4: #383835;
+  --div-5: #8a3a3a; --div-6: #d65b5b; --div-7: #f3a09f;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f3f1;
+  --surface-1: #fcfcfb;
+  --surface-2: #f3f2ef;
+  --surface-3: #e9e8e4;
+  --border: #e0dfda;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #77766f;
+  --accent: #2a78d6;
+  --accent-soft: rgba(42, 120, 214, .10);
+  --grid: #e7e6e1;
+  --cheap: #2a78d6; --normal: #9d9b94; --pricey: #e34948;
+  --cheap-soft: rgba(42, 120, 214, .10); --pricey-soft: rgba(227, 73, 72, .10);
+  --green: #1baf7a; --green-soft: rgba(27, 175, 122, .14);
+  --spark: #0aa596; --handle: #d6302f; --steel: #9d9b94;
+  --window: rgba(0, 0, 0, .035);
+  --div-1: #1c5cab; --div-2: #5598e7; --div-3: #b7d3f6; --div-4: #e9e8e4;
+  --div-5: #f5b8b7; --div-6: #e97372; --div-7: #b93433;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text-primary);
+  font: 14.5px/1.55 Inter, system-ui, sans-serif; font-variant-numeric: tabular-nums;
+}
+button, input { font: inherit; color: inherit; }
+a { color: var(--accent); }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px;
+  padding: 0 20px; height: 56px; border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-1) 92%, transparent); backdrop-filter: blur(8px);
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; white-space: nowrap; }
+.brand .logo { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); display: grid; place-items: center; color: #fff; }
+.status { display: flex; align-items: center; gap: 8px; margin-left: 12px; font-size: 13px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: none; }
+.status .dot.wait { background: var(--normal); }
+.spacer { flex: 1; }
+.seg { display: inline-flex; padding: 3px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border); flex: none; }
+.seg button { border: 0; background: none; cursor: pointer; padding: 4px 11px; border-radius: 6px; font-size: 13px; color: var(--text-muted); font-weight: 500; }
+.seg button[aria-pressed="true"] { background: var(--surface-1); color: var(--text-primary); box-shadow: 0 1px 2px rgba(0, 0, 0, .2); }
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: none;
+  height: 34px; min-width: 34px; padding: 0 10px; border-radius: 8px; cursor: pointer;
+  background: transparent; border: 1px solid var(--border); color: var(--text-secondary); text-decoration: none; font-size: 13px;
+}
+.icon-btn:hover { color: var(--text-primary); background: var(--surface-2); }
+.icon-btn svg { width: 16px; height: 16px; }
+
+/* ---------- page ---------- */
+/* narrow: dashboard first, then the knowledge cards below; wide (>=1640px): cards in rails left and right */
+.layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; max-width: 1280px; margin: 0 auto; padding: 22px 20px 40px; }
+main { min-width: 0; display: flex; flex-direction: column; gap: 16px; scroll-margin-top: 72px; }
+.rail { scroll-margin-top: 72px; }
+.rail { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; align-content: start; min-width: 0; }
+.rail:empty { display: none; }
+#rail-left { order: 2; } #rail-right { order: 3; }
+.rail-title { grid-column: 1 / -1; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin: 8px 2px -6px; }
+@media (min-width: 1640px) {
+  .layout { grid-template-columns: 290px minmax(0, 1280px) 290px; max-width: none; justify-content: center; }
+  #rail-left { order: 0; } #rail-right { order: 2; } main { order: 1; }
+  .rail { display: flex; flex-direction: column; }
+  .rail > .card:last-child { flex-grow: 1; }
+  .rail-title { margin: 0 2px -4px; }
+}
+.info h3 { font-size: 14px; font-weight: 600; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
+.info h3 svg { width: 17px; height: 17px; color: var(--accent); flex: none; }
+.info p { margin: 0 0 8px; font-size: 13px; color: var(--text-secondary); }
+.info p:last-child { margin-bottom: 0; }
+.info b { color: var(--text-primary); font-weight: 600; }
+.info ol, .info ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--text-secondary); }
+.info li { margin-bottom: 6px; }
+.info li:last-child { margin-bottom: 0; }
+.info li::marker { color: var(--text-muted); }
+.phases { list-style: none; padding: 0 !important; }
+.phases li { display: grid; grid-template-columns: 10px 1fr; gap: 2px 8px; }
+.phases li i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); margin-top: 6px; }
+.phases li span b { font-weight: 600; }
+.mini { position: relative; margin: 4px 0 12px; }
+.mini svg { display: block; width: 100%; height: 86px; overflow: visible; }
+.mini .ax { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); margin-top: 3px; }
+.facts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.facts > div { padding: 10px 12px; border-radius: 10px; background: var(--surface-2); }
+.facts .v { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+.facts .k { font-size: 11.5px; color: var(--text-muted); line-height: 1.35; }
+.use-table { width: 100%; border-collapse: collapse; font-size: 12.5px; table-layout: fixed; }
+.use-table th { text-align: left; font-weight: 500; color: var(--text-muted); font-size: 11.5px; padding: 0 0 6px; }
+.use-table th:not(:first-child), .use-table td:not(:first-child) { width: 66px; text-align: right; white-space: nowrap; padding-left: 6px; }
+.use-table th .pill { font-size: 10.5px; padding: 1px 6px; }
+.use-table td { padding: 6px 0; border-top: 1px solid var(--border); color: var(--text-secondary); vertical-align: top; }
+.use-table td:first-child { color: var(--text-primary); overflow-wrap: anywhere; hyphens: auto; }
+.use-table td small { display: block; font-size: 11px; color: var(--text-muted); }
+.use-table td.good { color: var(--cheap); font-weight: 600; }
+.use-table td.bad { color: var(--pricey); font-weight: 600; }
+dl.gloss { margin: 0; font-size: 13px; }
+dl.gloss dt { font-weight: 600; color: var(--text-primary); }
+dl.gloss dd { margin: 0 0 8px; color: var(--text-secondary); }
+dl.gloss dd:last-child { margin-bottom: 0; }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; min-width: 0; }
+.card-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.card-head h2 { font-size: 15px; margin: 0; font-weight: 600; }
+.card-head .sub { font-size: 12.5px; color: var(--text-muted); }
+.card-head .spacer { min-width: 8px; }
+
+/* KPI tiles */
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.kpi { padding: 15px 18px; }
+.kpi .k { font-size: 12.5px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+.kpi .v { font-size: 27px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; margin-top: 4px; }
+.kpi .v small { font-size: 14px; font-weight: 500; color: var(--text-secondary); letter-spacing: 0; }
+.kpi .s { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; }
+.pill { white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pill.cheap { color: var(--cheap); background: var(--cheap-soft); }
+.pill.pricey { color: var(--pricey); background: var(--pricey-soft); }
+.pill.normal { color: var(--text-secondary); background: var(--surface-3); }
+.pill.green { color: var(--green); background: var(--green-soft); }
+
+/* main grid */
+.grid-main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: stretch; }
+/* the last card of each column stretches, so the columns end on one line */
+.col > .card:last-child { flex-grow: 1; }
+#map-card:not([hidden]) { display: flex; flex-direction: column; flex-grow: 1; }
+#map-card .map-wrap { flex-grow: 1; align-items: center; }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* chart */
+.chart-wrap { position: relative; height: 330px; }
+.green-wrap { position: relative; height: 92px; margin-top: 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; font-size: 12.5px; color: var(--text-secondary); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+.legend i.band { width: 18px; height: 5px; border-radius: 3px; }
+.switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--text-secondary); user-select: none; }
+.switch input { appearance: none; width: 32px; height: 18px; border-radius: 999px; background: var(--surface-3); position: relative; cursor: pointer; margin: 0; transition: background .15s; }
+.switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--text-secondary); transition: transform .15s, background .15s; }
+.switch input:checked { background: var(--accent); }
+.switch input:checked::after { transform: translateX(14px); background: #fff; }
+.tooltip {
+  position: absolute; pointer-events: none; z-index: 5; padding: 8px 10px; border-radius: 8px; font-size: 12.5px;
+  background: var(--surface-3); border: 1px solid var(--border); color: var(--text-primary); white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .25); display: none;
+}
+.tooltip small { display: block; color: var(--text-muted); }
+
+/* planner */
+.appliances { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+.appl {
+  display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 4px 8px; border-radius: 12px; cursor: pointer;
+  background: var(--surface-2); border: 1px solid transparent; color: var(--text-secondary); font-size: 11.5px; line-height: 1.2; text-align: center;
+}
+
+.appl svg { width: 22px; height: 22px; }
+.appl:hover { color: var(--text-primary); }
+.appl[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--text-primary); }
+.field { margin-bottom: 14px; }
+.field-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+.field-top b { color: var(--text-primary); font-weight: 600; }
+input[type=range] { width: 100%; margin: 0; accent-color: var(--accent); height: 20px; cursor: pointer; background: transparent; }
+.dual { position: relative; height: 26px; }
+.dual .track { position: absolute; left: 8px; right: 8px; top: 11px; height: 4px; border-radius: 2px; background: var(--surface-3); }
+.dual .fill { position: absolute; top: 11px; height: 4px; border-radius: 2px; background: var(--accent); }
+.dual input { position: absolute; inset: 0; pointer-events: none; appearance: none; -webkit-appearance: none; }
+.dual input::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 3px solid var(--accent); cursor: grab; box-shadow: 0 1px 4px rgba(0, 0, 0, .35); }
+.dual input::-moz-range-thumb { pointer-events: auto; width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 3px solid var(--accent); cursor: grab; }
+.dual input::-webkit-slider-runnable-track { background: transparent; }
+.quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.quick button { border: 1px solid var(--border); background: none; cursor: pointer; border-radius: 999px; padding: 3px 10px; font-size: 12px; color: var(--text-secondary); }
+.quick button:hover { color: var(--text-primary); border-color: var(--text-muted); }
+.result { margin-top: 6px; padding: 16px; border-radius: 14px; background: var(--surface-2); }
+.result .when { font-size: 13px; color: var(--text-muted); }
+.result .big { font-size: 26px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; margin: 2px 0 2px; }
+.result .fin { font-size: 13.5px; color: var(--text-secondary); }
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.compare > div { padding: 10px 12px; border-radius: 10px; background: var(--surface-1); }
+.compare .k { font-size: 12px; color: var(--text-muted); }
+.compare .v { font-size: 17px; font-weight: 600; }
+.compare .good .v { color: var(--cheap); }
+.compare .bad .v { color: var(--pricey); }
+.alt { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 10px 12px; border-radius: 10px; border: 1px dashed var(--border); font-size: 13px; color: var(--text-secondary); }
+.alt button { margin-left: auto; }
+.warn { color: var(--pricey); font-size: 13.5px; }
+
+/* tariff */
+.hint { font-size: 12.5px; color: var(--text-muted); margin: 10px 0 0; }
+.tariff-sum { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.tariff-sum > div { padding: 10px 12px; border-radius: 10px; background: var(--surface-2); }
+.tariff-sum .k { font-size: 12px; color: var(--text-muted); }
+.tariff-sum .v { font-size: 17px; font-weight: 600; }
+
+/* heatmap */
+.heat { display: grid; grid-template-columns: 64px repeat(24, minmax(0, 1fr)); gap: 2px; font-size: 11px; color: var(--text-muted); position: relative; }
+.heat .cell { height: 13px; border-radius: 2px; background: var(--c); }
+.heat .cell:hover { outline: 1.5px solid var(--text-primary); }
+.heat .rl { white-space: nowrap; padding-right: 6px; text-align: right; line-height: 13px; font-size: 10.5px; }
+.heat .hl { text-align: center; }
+.heat-legend { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; }
+.heat-legend .ramp { display: flex; }
+.heat-legend .ramp i { width: 22px; height: 9px; background: var(--c); }
+.heat-legend .ramp i:first-child { border-radius: 3px 0 0 3px; }
+.heat-legend .ramp i:last-child { border-radius: 0 3px 3px 0; }
+.heat-legend .grad { width: 150px; height: 9px; border-radius: 3px; background: linear-gradient(90deg, var(--g)); }
+.typical { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+
+/* Europe map */
+.map-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 24px; align-items: start; }
+.map-box { position: relative; min-width: 0; }
+svg.eu { display: block; width: 100%; height: auto; max-height: 620px; }
+svg.eu path { stroke: var(--surface-1); stroke-width: .7; stroke-linejoin: round; }
+svg.eu path.land { fill: none; stroke: var(--border); stroke-width: .8; }
+svg.eu path.zone { fill: var(--surface-3); cursor: pointer; }
+svg.eu path.zone.hot { stroke: var(--text-primary); stroke-width: 1.6; }
+svg.eu path.de-ring { fill: none; stroke: var(--text-primary); stroke-width: 1.8; pointer-events: none; }
+.map-now .k { font-size: 12.5px; color: var(--text-muted); }
+.map-now .v { font-size: 26px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; }
+.map-now .v small { font-size: 13px; font-weight: 500; color: var(--text-secondary); letter-spacing: 0; }
+.map-now .s { font-size: 12.5px; color: var(--text-secondary); margin-bottom: 10px; }
+.rank { list-style: none; margin: 0; padding: 0; font-size: 12.5px; }
+.rank li { display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 8px; padding: 3px 6px; border-radius: 6px; color: var(--text-secondary); cursor: default; }
+.rank li i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+.rank li b { font-weight: 600; color: var(--text-primary); }
+.rank li.me { background: var(--surface-2); color: var(--text-primary); font-weight: 600; }
+.rank li.hot { background: var(--surface-3); }
+.map-controls { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.map-controls input { flex: 1; }
+.map-controls input.off { opacity: .45; }
+.chip { border: 1px solid var(--border); background: none; cursor: pointer; border-radius: 999px; padding: 4px 12px; font-size: 12.5px; color: var(--text-secondary); white-space: nowrap; }
+.chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--text-primary); }
+@media (max-width: 640px) { .map-wrap { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- intro ---------- */
+html { scroll-behavior: smooth; }
+.hero { position: relative; min-height: min(calc(100svh - 56px), 1000px); display: flex; flex-direction: column; justify-content: center; align-items: center;
+  overflow: hidden; padding: 56px 20px 200px; text-align: center; border-bottom: 1px solid var(--border); isolation: isolate; }
+.hero::before { content: ""; position: absolute; inset: -20% -10% auto; height: 80%; z-index: -2; pointer-events: none;
+  background: radial-gradient(40% 50% at 30% 40%, var(--cheap-soft), transparent 70%), radial-gradient(35% 45% at 72% 35%, var(--green-soft), transparent 70%); }
+.hero-inner { max-width: 1080px; position: relative; z-index: 1; }
+/* intro stays put on large screens while the dashboard slides over it */
+.stage { position: relative; z-index: 2; background: var(--bg); scroll-margin-top: 56px; }
+@media (min-width: 761px) and (min-height: 760px) {
+  .hero { position: sticky; top: 56px; height: calc(100svh - 56px); min-height: 0; }
+  .stage { border-top: 1px solid var(--border); box-shadow: 0 -24px 60px rgba(0, 0, 0, .35); }
+}
+.hero-go { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); z-index: 3; display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 18px 10px 20px; border-radius: 999px; font-size: 14px; font-weight: 600; text-decoration: none; color: #fff; background: var(--accent);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .3); white-space: nowrap; }
+.hero-go:hover { filter: brightness(1.08); }
+.hero-go svg { width: 17px; height: 17px; animation: bob 1.8s infinite; }
+@keyframes bob { 50% { transform: translateY(3px); } }
+/* main switch and cables */
+svg.power { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; overflow: visible; }
+/* rails are invisible without power; only the lit current shows them */
+svg.power .cable { display: none; }
+svg.power .lit { fill: none; stroke: var(--spark); stroke-width: 3; stroke-linecap: round; opacity: 0; filter: drop-shadow(0 0 5px var(--spark)); }
+svg.power .switch { pointer-events: auto; cursor: pointer; }
+svg.power .panel { fill: var(--surface-2); stroke: var(--border); stroke-width: 1.5; }
+svg.power .screw { fill: var(--surface-3); stroke: var(--border); }
+svg.power .terminal { fill: var(--steel); }
+svg.power .arm { fill: var(--steel); }
+svg.power .grip { fill: var(--handle); }
+svg.power .grip-hi { fill: #fff; opacity: .28; }
+svg.power .lamp { fill: var(--surface-3); stroke: var(--border); }
+svg.power .spark { fill: var(--spark); opacity: 0; filter: drop-shadow(0 0 6px var(--spark)); transform-box: fill-box; transform-origin: center; }
+svg.power .node { fill: var(--spark); opacity: 0; transform-box: fill-box; transform-origin: center; }
+.hero.powered { padding-top: 120px; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-1) 80%, transparent); font-size: 13px; color: var(--text-secondary); }
+.eyebrow .live { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+.hero h1 { font-size: clamp(32px, 4.3vw, 60px); line-height: 1.06; letter-spacing: -.035em; margin: 22px 0 18px; font-weight: 700; }
+.hero h1 .grad-text { background: linear-gradient(90deg, var(--cheap), var(--green)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero .lead { font-size: clamp(15.5px, 1.4vw, 18px); line-height: 1.6; color: var(--text-secondary); max-width: 700px; margin: 0 auto; }
+.hero-live { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 26px 0 0; min-height: 34px; }
+.hero-live .chip-live { display: inline-flex; align-items: center; gap: 8px; padding: 6px 13px; border-radius: 999px; font-size: 13.5px;
+  background: var(--surface-1); border: 1px solid var(--border); color: var(--text-secondary); }
+.hero-live .chip-live b { color: var(--text-primary); font-weight: 600; }
+.hero-feats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 40px auto 0; max-width: 900px; text-align: left; }
+.hero-feats > div { padding: 14px 16px; border-radius: 14px; background: color-mix(in srgb, var(--surface-1) 85%, transparent); border: 1px solid var(--border); backdrop-filter: blur(6px); }
+.hero-feats b { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+.hero-feats b svg { width: 18px; height: 18px; color: var(--accent); flex: none; }
+.hero-feats span { display: block; font-size: 12.5px; color: var(--text-muted); margin-top: 4px; line-height: 1.45; }
+.hero-feats b span { display: inline; font-size: inherit; color: inherit; margin: 0; }
+.hero-curve { position: absolute; left: 0; right: 0; bottom: 0; height: 210px; z-index: -1; pointer-events: none; }
+.hero-curve svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.hero-curve .line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.hero-curve.draw .line { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); animation: draw 2.4s .2s ease-out forwards; }
+.hero-curve.draw .area, .hero-curve.draw .marks { opacity: 0; animation: fade 1s 1.6s forwards; }
+.hero-curve .mark-text { font: 600 12px Inter, sans-serif; fill: var(--text-secondary); }
+.hero-curve .now-dot { fill: var(--text-primary); }
+.hero-curve .now-ring { fill: none; stroke: var(--text-primary); stroke-width: 1.5; transform-box: fill-box; transform-origin: center; animation: ring 2s infinite; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@keyframes fade { to { opacity: 1; } }
+@keyframes ring { from { transform: scale(1); opacity: .9; } to { transform: scale(3.2); opacity: 0; } }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 var(--green-soft); } 70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@media (max-width: 760px) {
+  .hero { padding: 36px 16px 170px; min-height: auto; }
+  .hero-feats { grid-template-columns: minmax(0, 1fr); margin-top: 28px; }
+  .hero-curve { height: 150px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .hero-curve.draw .line, .hero-curve.draw .area, .hero-curve.draw .marks { animation: none; stroke-dashoffset: 0; opacity: 1; }
+  .hero-curve .now-ring, .eyebrow .live { animation: none; }
+}
+
+footer { max-width: 1280px; margin: 0 auto; padding: 0 20px 40px; font-size: 12.5px; color: var(--text-muted); }
+footer p { margin: 0 0 6px; }
+.loading { padding: 80px 0; text-align: center; color: var(--text-muted); }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1100px) {
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+  .grid-main { grid-template-columns: minmax(0, 1fr); }
+  /* one column: chart, planner, tariff, heatmap */
+  .col { display: contents; }
+  #chart-card { order: 1; } #planner { order: 2; } #tariff { order: 3; } #heat-card { order: 4; }
+}
+@media (max-width: 640px) {
+  .topbar { padding: 0 12px; gap: 8px; }
+  .status, .gh-label { display: none; }
+  .layout { padding: 14px 12px 32px; }
+  .rail { grid-template-columns: minmax(0, 1fr); }
+  .card { padding: 14px; }
+  .kpi .v { font-size: 22px; }
+  .chart-wrap { height: 260px; }
+  .heat { grid-template-columns: 44px repeat(24, minmax(0, 1fr)); gap: 1px; }
+  .heat .rl { font-size: 9.5px; padding-right: 3px; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></span>
+    <span>Strompreis-Planer</span>
+  </div>
+  <div class="status" id="status"><span class="dot wait"></span><span data-i18n="loading">Lade Preise…</span></div>
+  <div class="spacer"></div>
+  <div class="seg" role="group" aria-label="Language">
+    <button id="lang-de" aria-pressed="true">DE</button><button id="lang-en" aria-pressed="false">EN</button>
+  </div>
+  <a class="icon-btn" href="https://github.com/vulevu228/StrompreisPlaner" target="_blank" rel="noopener" title="GitHub">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.56 9.56 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></svg>
+  </a>
+  <button class="icon-btn" id="theme-btn" title="Theme"><svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg></button>
+</header>
+
+<section class="hero" id="hero">
+  <div class="hero-inner">
+    <div class="eyebrow"><span class="live"></span><span data-i18n="heroEyebrow"></span></div>
+    <h1><span data-i18n="heroTitle1"></span><br><span class="grad-text" data-i18n="heroTitle2"></span></h1>
+    <p class="lead" data-i18n="heroLead"></p>
+    <div class="hero-live" id="hero-live"></div>
+    <div class="hero-feats">
+      <div><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 20h18M6 16v-4M10 16V8M14 16v-6M18 16V5"/></svg><span data-i18n="heroF1"></span></b><span data-i18n="heroF1s"></span></div>
+      <div><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span data-i18n="heroF2"></span></b><span data-i18n="heroF2s"></span></div>
+      <div><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg><span data-i18n="heroF3"></span></b><span data-i18n="heroF3s"></span></div>
+    </div>
+  </div>
+  <div class="hero-curve" id="hero-curve"></div>
+  <svg class="power" id="power" aria-hidden="true"></svg>
+  <a class="hero-go" href="#stage"><span data-i18n="heroCta"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg></a>
+</section>
+
+<!-- the dashboard slides up over the intro, which stays in place -->
+<div class="stage" id="stage">
+<div class="layout">
+  <aside class="rail" id="rail-left" aria-label="Wissen"></aside>
+  <main id="app"><div class="loading" data-i18n="loading">Lade Preise…</div></main>
+  <aside class="rail" id="rail-right" aria-label="Tipps"></aside>
+</div>
+
+<footer>
+  <p data-i18n="footerData"></p>
+  <p data-i18n="footerNote"></p>
+  <p><span data-i18n="builtBy"></span> <a href="https://vulevu228.github.io" target="_blank" rel="noopener">vulevu228</a> · <a href="https://github.com/vulevu228/StrompreisPlaner" target="_blank" rel="noopener">GitHub</a></p>
+</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+/* ================= text (German / English) ================= */
+const T = {
+  de: {
+    loading: "Preise werden geladen…", error: "Die Preise konnten nicht geladen werden. Bitte versuchen Sie es später noch einmal.",
+    statusTomorrow: "Die Preise für morgen sind da", statusWaiting: "Die Preise für morgen kommen gegen 13 Uhr", updated: "Stand",
+    now: "Jetzt", nowSub: "Börsenpreis {spot} ct · Ökostrom {green} %", cheapestNext: "Günstigste Stunde", priciestNext: "Teuerste Stunde",
+    today: "heute", tomorrow: "morgen", both: "Beide", tomorrowVs: "Wie teuer wird morgen?", tomorrowVsNone: "Noch keine Preise",
+    tomorrowVsNoneSub: "Sie kommen gegen 13 Uhr", cheaperThan: "günstiger als an {p} % der letzten {n} Tage", avgDay: "Ø morgen {v} ct",
+    cheap: "günstig", normal: "normal", pricey: "teuer",
+    chartTitle: "Strompreis pro Viertelstunde", chartSubEnd: "Ihr Preis mit Netzentgelt und Steuern, in ct/kWh", chartSubSpot: "Börsenpreis ohne Nebenkosten, in ct/kWh",
+    endPrice: "Ihr Preis", spot: "Börsenpreis", greenToggle: "Ökostrom-Anteil", greenTitle: "Ökostrom-Anteil (Vorhersage)",
+    legendRun: "Beste Zeit für Ihr Gerät", legendWindow: "Ihr Zeitraum", nowLine: "jetzt",
+    planner: "Planer", plannerSub: "Wann läuft Ihr Gerät am günstigsten?",
+    ev: "E-Auto", wash: "Wäsche", dish: "Geschirr", dryer: "Trockner", battery: "Speicher", heatpump: "Warmwasser", custom: "Sonstiges", heater: "Heizlüfter",
+    energy: "Strombedarf", duration: "Laufzeit", power: "Ladeleistung", canPause: "Darf Pausen machen (z. B. beim Laden)", window: "Zeitraum",
+    quickNow: "ab jetzt", quickMorning: "bis morgen 7 Uhr", quickEvening: "bis heute 18 Uhr", quickAll: "ganzer Zeitraum",
+    bestStart: "Beste Startzeit", bestSlots: "Günstigste Ladezeiten", finished: "Fertig: {t}", pieces: "In {n} Abschnitten, fertig: {t}",
+    cost: "Kosten", startNow: "Bei Start jetzt", saving: "Sie sparen", vsFixed: "Gegenüber Festpreis", greenest: "Am grünsten: ab {t} ({g} % Ökostrom), kostet {c}",
+    show: "Auswählen", tooShort: "Der Zeitraum ist zu kurz für diese Laufzeit. Bitte wählen Sie einen längeren Zeitraum.", noData: "Für diesen Zeitraum gibt es keine Preise.",
+    tariff: "Ihr Tarif", tariffSub: "So wird aus dem Börsenpreis Ihr Preis", surcharge: "Netzentgelt, Steuern und Umlagen", vat: "mit 19 % Mehrwertsteuer",
+    fixed: "Ihr Festpreis (zum Vergleich)", tariffHint: "Typische Werte für 2026, geschätzt. Die genauen Beträge finden Sie auf Ihrer Stromrechnung. Den Börsenpreis zahlen Sie nur mit einem dynamischen Tarif und einem Smart Meter. Strom zur grünsten Zeit zu nutzen, lohnt sich aber für alle.",
+    avgToday: "Ø Preis heute", avgTomorrow: "Ø Preis morgen",
+    heatTitle: "Wann ist Strom meistens günstig?", heatSub: "Preis pro Stunde in den letzten {n} Tagen",
+    typicalCheap: "Meist günstig: {h}", typicalPricey: "Meist teuer: {h}", heatLow: "günstig", heatHigh: "teuer",
+    footerData: "Daten: Bundesnetzagentur | SMARD.de über energy-charts.info (Fraunhofer ISE), CC BY 4.0. Day-Ahead-Preise für Deutschland und Luxemburg, mehrmals am Tag aktualisiert.",
+    footerNote: "Alle Angaben ohne Gewähr. Ihre Preise sind Schätzungen und hängen von Ihren Einstellungen ab.",
+    builtBy: "Gebaut von", slotAt: "{t}", greenShare: "Ökostrom {g} %", h: "Uhr",
+    euro: "{v} €", ct: "{v} ct", cheaperBy: "{v} günstiger", dearerBy: "{v} teurer", avgWord: "im Schnitt",
+    dearerThan: "teurer als an {p} % der letzten {n} Tage",
+    heroEyebrow: "Börsenstrompreise für Deutschland, jede Viertelstunde",
+    heroTitle1: "Strom kostet nicht immer gleich viel.", heroTitle2: "Nutzen Sie die günstigen Stunden.",
+    heroLead: "An der Strombörse ändert sich der Preis alle 15 Minuten. Mittags ist Strom oft sehr günstig, abends teuer. Hier sehen Sie, wann Strom heute und morgen am günstigsten und am grünsten ist, und wann Ihre Waschmaschine oder Ihr E-Auto am besten läuft.",
+    heroCta: "Zu den Preisen", pwTitle: "Hauptschalter: zum Einschalten klicken",
+    heroF1: "Preise für heute und morgen", heroF1s: "In 15-Minuten-Schritten. Die Preise für morgen kommen gegen 13 Uhr.",
+    heroF2: "Planer für Ihre Geräte", heroF2s: "E-Auto, Waschmaschine, Wärmepumpe und mehr: Wann ist der beste Start?",
+    heroF3: "Europa im Vergleich", heroF3s: "Wie teuer ist Strom bei den Nachbarn? Sehen Sie den Preis durch Europa wandern.",
+    heroNow: "Jetzt", heroCheapest: "Heute am günstigsten", heroGreen: "Ökostrom jetzt", heroLow: "am günstigsten", heroHigh: "am teuersten",
+    mapTitle: "Strompreise in Europa", mapSub: "Börsenpreis ohne Steuern und Netzentgelt, in ct/kWh", mapAvg: "Ø Tag",
+    mapPlay: "Abspielen", mapPause: "Anhalten", mapRank: "Platz {r} von {n}", mapDe: "Deutschland",
+    mapCheaper: "{p} % günstiger als Deutschland", mapDearer: "{p} % teurer als Deutschland", mapSame: "gleicher Preis wie Deutschland",
+    mapAvgDay: "Tagesdurchschnitt",
+    mapHint: "Die Länder handeln ständig Strom miteinander. Ist er bei den Nachbarn billiger, kauft Deutschland dort ein. Drücken Sie auf „Abspielen“ und sehen Sie, wie sich die Preise in Europa im Laufe des Tages verändern.",
+  },
+  en: {
+    loading: "Loading prices…", error: "Couldn't load the price data. Please try again later.",
+    statusTomorrow: "Tomorrow's prices are in", statusWaiting: "Tomorrow's prices arrive around 1 pm", updated: "Updated",
+    now: "Now", nowSub: "Market {spot} ct · renewables {green} %", cheapestNext: "Cheapest hour", priciestNext: "Most expensive hour",
+    today: "today", tomorrow: "tomorrow", both: "Both", tomorrowVs: "Tomorrow compared", tomorrowVsNone: "No prices yet",
+    tomorrowVsNoneSub: "Published around 1 pm", cheaperThan: "cheaper than {p} % of the last {n} days", avgDay: "tomorrow avg {v} ct",
+    cheap: "cheap", normal: "normal", pricey: "expensive",
+    chartTitle: "Electricity price in 15-minute steps", chartSubEnd: "Your price incl. fees, ct/kWh", chartSubSpot: "Market price (day-ahead), ct/kWh",
+    endPrice: "Your price", spot: "Market", greenToggle: "Renewable share", greenTitle: "Renewable share (forecast)",
+    legendRun: "Best time for your appliance", legendWindow: "Your time window", nowLine: "now",
+    planner: "Planner", plannerSub: "When does your appliance run cheapest?",
+    ev: "EV", wash: "Washer", dish: "Dishwasher", dryer: "Dryer", battery: "Battery", heatpump: "Hot water", custom: "Custom", heater: "Heater",
+    energy: "Energy", duration: "Run time", power: "Charging power", canPause: "Can pause (e.g. charging)", window: "Time window",
+    quickNow: "from now", quickMorning: "until 7 am tomorrow", quickEvening: "until 6 pm today", quickAll: "everything",
+    bestStart: "Best start", bestSlots: "Cheapest charging times", finished: "Done {t}", pieces: "In {n} blocks, done {t}",
+    cost: "Cost", startNow: "Start now", saving: "You save", vsFixed: "vs. fixed tariff", greenest: "Greenest time: {t} ({g} % renewables), {c}",
+    show: "Pick", tooShort: "The time window is too short for this run time. Please widen it.", noData: "No prices in the selected window.",
+    tariff: "Your tariff", tariffSub: "From market price to what you pay", surcharge: "Grid fees, taxes & levies", vat: "incl. 19 % VAT",
+    fixed: "Your fixed price, to compare", tariffHint: "Typical 2026 values, estimates. The exact amounts are on your electricity bill. You only pay market prices with a dynamic tariff and a smart meter; the greenest time is worth it for everyone.",
+    avgToday: "Avg. price today", avgTomorrow: "Avg. price tomorrow",
+    heatTitle: "When is electricity usually cheap?", heatSub: "Market price per hour, last {n} days",
+    typicalCheap: "Usually cheap: {h}", typicalPricey: "Usually expensive: {h}", heatLow: "cheap", heatHigh: "expensive",
+    footerData: "Data: Bundesnetzagentur | SMARD.de via energy-charts.info (Fraunhofer ISE), CC BY 4.0. Day-ahead prices for the DE-LU bidding zone, updated several times a day.",
+    footerNote: "No guarantee. Your prices are estimates based on your settings.",
+    builtBy: "Built by", slotAt: "{t}", greenShare: "Renewables {g} %", h: "",
+    euro: "€{v}", ct: "{v} ct", cheaperBy: "{v} cheaper", dearerBy: "{v} more", avgWord: "avg.",
+    dearerThan: "more expensive than {p} % of the last {n} days",
+    heroEyebrow: "Market electricity prices for Germany, every quarter-hour",
+    heroTitle1: "Electricity doesn't always cost the same.", heroTitle2: "Use the cheap hours.",
+    heroLead: "On the power exchange, the price changes every 15 minutes. At midday power is often very cheap, in the evening it's expensive. See when electricity is cheapest and greenest today and tomorrow, and when your washer or EV should run.",
+    heroCta: "Go to prices", pwTitle: "Main switch: click to switch on",
+    heroF1: "Prices for today and tomorrow", heroF1s: "In 15-minute steps. Tomorrow's prices arrive around 1 pm.",
+    heroF2: "Planner for your appliances", heroF2s: "EV, washer, heat pump and more: when is the best start?",
+    heroF3: "Europe compared", heroF3s: "How expensive is power next door? Watch the price move across Europe.",
+    heroNow: "Now", heroCheapest: "Cheapest today", heroGreen: "Renewables now", heroLow: "cheapest", heroHigh: "priciest",
+    mapTitle: "Electricity prices in Europe", mapSub: "Market price without taxes and grid fees, in ct/kWh", mapAvg: "Day avg.",
+    mapPlay: "Play", mapPause: "Pause", mapRank: "Rank {r} of {n}", mapDe: "Germany",
+    mapCheaper: "{p} % cheaper than Germany", mapDearer: "{p} % more expensive than Germany", mapSame: "same price as Germany",
+    mapAvgDay: "Daily average",
+    mapHint: "Countries trade electricity with each other all the time. When it's cheaper next door, Germany buys there. Press “Play” to watch prices across Europe change during the day.",
+  },
+};
+let lang = document.documentElement.lang === "en" ? "en" : "de";
+const t = (key, vars = {}) => (T[lang][key] ?? key).replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+
+/* ================= appliances ================= */
+const ICON = {
+  ev: '<path d="M5 16h14M6 16l1.5-5.5A2 2 0 0 1 9.4 9h5.2a2 2 0 0 1 1.9 1.5L18 16M5 16v3h2v-2M19 16v3h-2v-2"/><circle cx="8" cy="14" r=".6"/><circle cx="16" cy="14" r=".6"/><path d="M12 2.5 10.5 5h3L12 7.5"/>',
+  wash: '<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M7 6.5h2"/>',
+  dish: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 8h16M8 5.5h1M11 13a2 2 0 0 0 4 0M9 16h6"/>',
+  dryer: '<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M10.5 11.5c1 .8 2 .8 3 0M10.5 14.5c1 .8 2 .8 3 0"/>',
+  battery: '<rect x="3" y="7" width="16" height="10" rx="2"/><path d="M21 10.5v3M11.5 9 9 12.5h3.5L10 15"/>',
+  heatpump: '<path d="M12 3v12M9 6c0-1.7 1.3-3 3-3s3 1.3 3 3v9a4 4 0 1 1-6 0z"/><path d="M12 15v2"/>',
+  heater: '<rect x="4" y="5" width="16" height="12" rx="2"/><path d="M8 9v4M12 9v4M16 9v4M7 17v2M17 17v2"/>',
+  custom: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
+};
+// energy in kWh; fixed-program appliances have a run time, pausable ones a power in kW
+const APPLIANCES = {
+  ev:       { energy: 30, min: 5, max: 80, step: 1, pause: true, power: 11, until: "morning" },
+  wash:     { energy: 0.9, min: 0.3, max: 3, step: 0.1, pause: false, hours: 2 },
+  dish:     { energy: 1.1, min: 0.3, max: 3, step: 0.1, pause: false, hours: 3 },
+  dryer:    { energy: 2.5, min: 0.5, max: 5, step: 0.1, pause: false, hours: 2 },
+  battery:  { energy: 5, min: 1, max: 20, step: 0.5, pause: true, power: 3, until: "all" },
+  heatpump: { energy: 3, min: 0.5, max: 10, step: 0.5, pause: false, hours: 2 },
+  heater:   { energy: 2, min: 0.5, max: 6, step: 0.5, pause: false, hours: 1 },
+  custom:   { energy: 2, min: 0.1, max: 80, step: 0.1, pause: false, hours: 1 },
+};
+
+/* ================= state ================= */
+const DEFAULTS = { surcharge: 18, vat: true, fixed: 32, mode: "end", day: "both", green: true, appliance: "ev" };
+const saved = (() => { try { return JSON.parse(localStorage.getItem("settings") || "{}"); } catch { return {}; } })();
+const S = { ...DEFAULTS, ...saved, data: null, slots: [], plan: {}, win: [0, 0] };
+for (const k of Object.keys(APPLIANCES)) S.plan[k] = { ...APPLIANCES[k], ...(saved.plan?.[k] || {}) };
+const persist = () => {
+  try {
+    const { surcharge, vat, fixed, mode, day, green, appliance } = S;
+    const plan = Object.fromEntries(Object.entries(S.plan).map(([k, p]) => [k, { energy: p.energy, hours: p.hours, power: p.power, pause: p.pause }]));
+    localStorage.setItem("settings", JSON.stringify({ surcharge, vat, fixed, mode, day, green, appliance, plan }));
+  } catch {}
+};
+const charts = {};
+
+/* ================= helpers ================= */
+const $ = (id) => document.getElementById(id);
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const locale = () => (lang === "de" ? "de-DE" : "en-GB");
+const TZ = "Europe/Berlin";
+const num = (v, d = 1) => v.toLocaleString(locale(), { minimumFractionDigits: d, maximumFractionDigits: d });
+const eur = (v) => t("euro", { v: num(v, 2) });
+const ct = (v, d = 1) => t("ct", { v: num(v, d) });
+const fmtTime = (ts) => new Date(ts * 1000).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit", timeZone: TZ });
+const fmtDay = (ts, opts = { weekday: "short" }) => new Date(ts * 1000).toLocaleDateString(locale(), { ...opts, timeZone: TZ });
+const berlinParts = (ts) => {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+    .formatToParts(new Date(ts * 1000)).map((x) => [x.type, x.value]));
+  return { date: `${p.year}-${p.month}-${p.day}`, hour: +p.hour, minute: +p.minute };
+};
+const dayWord = (ts) => {
+  const d = berlinParts(ts).date, today = berlinParts(Date.now() / 1000).date;
+  return d === today ? t("today") : t("tomorrow");
+};
+const whenLabel = (ts) => (lang === "de" ? `${dayWord(ts)}, ${fmtTime(ts)} Uhr` : `${dayWord(ts)} ${fmtTime(ts)}`);
+/* price shown to the user, ct/kWh: market price, or market + fees (+ VAT) */
+const endPrice = (eurMwh) => (eurMwh / 10 + S.surcharge) * (S.vat ? 1.19 : 1);
+const shown = (eurMwh) => (S.mode === "spot" ? eurMwh / 10 : endPrice(eurMwh));
+const quantile = (xs, q) => { const s = [...xs].sort((a, b) => a - b), i = (s.length - 1) * q, lo = Math.floor(i); return s[lo] + (s[Math.ceil(i)] - s[lo]) * (i - lo); };
+
+/* ================= data ================= */
+async function load() {
+  loadEurope();
+  try {
+    const res = await fetch(`data/latest.json?v=${Math.floor(Date.now() / 600000)}`);
+    const data = await res.json();
+    if (S.data && data.generated === S.data.generated) return;  // nothing new: keep the page as it is
+    S.data = data;
+  } catch {
+    if (!S.data) $("app").innerHTML = `<div class="loading">${t("error")}</div>`;
+    return;
+  }
+  // levels are relative to each day: cheapest third = cheap, most expensive third = expensive
+  const byDay = {};
+  S.slots = S.data.slots.map(([ts, price, green, signal]) => {
+    const s = { ts, price, green, signal, day: berlinParts(ts).date };
+    (byDay[s.day] ??= []).push(price);
+    return s;
+  });
+  for (const s of S.slots) {
+    const ps = byDay[s.day];
+    s.level = s.price <= quantile(ps, 1 / 3) ? "cheap" : s.price >= quantile(ps, 2 / 3) ? "pricey" : "normal";
+  }
+  render();
+}
+
+const nowTs = () => Date.now() / 1000;
+const nowIndex = () => S.slots.findIndex((s) => s.ts <= nowTs() && nowTs() < s.ts + 900);
+const firstFutureIndex = () => { const i = nowIndex(); return i >= 0 ? i : Math.max(0, S.slots.findIndex((s) => s.ts > nowTs())); };
+
+/* ================= planner maths ================= */
+// Returns { slots: [indices], energyPer: [kWh], cost: €, start, end } or null
+function plan(p, from, to, objective = "price") {
+  const range = [];
+  for (let i = from; i <= to; i++) range.push(i);
+  if (!range.length) return null;
+  const costOf = (i, kwh) => endPrice(S.slots[i].price) / 100 * kwh;  // € at the user's end price
+  const score = (i) => objective === "green" ? -(S.slots[i].green ?? 0) : S.slots[i].price;
+  if (p.pause) {
+    // pausable (EV, battery): fill the best 15-minute slots until the energy is covered
+    const perSlot = p.power * 0.25;
+    const need = Math.ceil(p.energy / perSlot - 1e-9);
+    if (need > range.length) return null;
+    // best slots first get full energy; the last (least attractive) one takes the remainder
+    const order = [...range].sort((a, b) => score(a) - score(b) || a - b).slice(0, need);
+    let left = p.energy;
+    const energyOf = new Map(order.map((i) => { const e = Math.min(perSlot, left); left -= e; return [i, e]; }));
+    const chosen = [...order].sort((a, b) => a - b);
+    const energyPer = chosen.map((i) => energyOf.get(i));
+    const cost = chosen.reduce((sum, i, k) => sum + costOf(i, energyPer[k]), 0);
+    return { slots: chosen, energyPer, cost, start: S.slots[chosen[0]].ts, end: S.slots[chosen.at(-1)].ts + 900 };
+  }
+  // fixed program: one continuous block, try every start
+  const n = Math.max(1, Math.round(p.hours * 4));
+  if (n > range.length) return null;
+  let best = null;
+  for (let s = from; s + n - 1 <= to; s++) {
+    let sc = 0; for (let i = s; i < s + n; i++) sc += score(i);
+    if (!best || sc < best.sc) best = { s, sc };
+  }
+  const chosen = Array.from({ length: n }, (_, k) => best.s + k);
+  const cost = chosen.reduce((sum, i) => sum + costOf(i, p.energy / n), 0);
+  return { slots: chosen, energyPer: chosen.map(() => p.energy / n), cost, start: S.slots[best.s].ts, end: S.slots[best.s + n - 1].ts + 900 };
+}
+// "start now": the same energy, beginning at the first possible slot without waiting
+function planNow(p, from, to) {
+  const n = p.pause ? Math.ceil(p.energy / (p.power * 0.25) - 1e-9) : Math.max(1, Math.round(p.hours * 4));
+  if (from + n - 1 > to) return null;
+  const chosen = Array.from({ length: n }, (_, k) => from + k);
+  const per = p.pause ? chosen.map((_, k) => Math.min(p.power * 0.25, p.energy - k * p.power * 0.25)) : chosen.map(() => p.energy / n);
+  return { cost: chosen.reduce((s, i, k) => s + endPrice(S.slots[i].price) / 100 * per[k], 0) };
+}
+
+/* ================= rendering ================= */
+function render() {
+  document.documentElement.lang = lang;
+  $("lang-de").setAttribute("aria-pressed", lang === "de");
+  $("lang-en").setAttribute("aria-pressed", lang === "en");
+  document.querySelectorAll("[data-i18n]").forEach((el) => el.textContent = t(el.dataset.i18n));
+  renderRails();
+  if (!S.data) return;
+  renderHero();
+  renderStatus();
+  $("app").innerHTML = `
+    <section class="kpis" id="kpis"></section>
+    <section class="grid-main">
+      <div class="col">
+      <div class="card" id="chart-card">
+        <div class="card-head">
+          <div><h2>${t("chartTitle")}</h2><div class="sub" id="chart-sub"></div></div>
+          <span class="spacer"></span>
+          <div class="seg" id="day-seg">${["today", "tomorrow", "both"].map((d) =>
+            `<button data-day="${d}" aria-pressed="${S.day === d}" ${d === "tomorrow" && !S.data.tomorrow_available ? "disabled" : ""}>${t(d)[0].toUpperCase() + t(d).slice(1)}</button>`).join("")}</div>
+          <div class="seg" id="mode-seg">
+            <button data-mode="end" aria-pressed="${S.mode === "end"}">${t("endPrice")}</button><button data-mode="spot" aria-pressed="${S.mode === "spot"}">${t("spot")}</button>
+          </div>
+          <label class="switch"><input type="checkbox" id="green-toggle" ${S.green ? "checked" : ""}>${t("greenToggle")}</label>
+        </div>
+        <div class="chart-wrap"><canvas id="price-chart" aria-label="${t("chartTitle")}" role="img"></canvas><div class="tooltip" id="price-tip"></div></div>
+        <div class="green-wrap" id="green-wrap" ${S.green ? "" : "hidden"}><canvas id="green-chart" aria-label="${t("greenTitle")}" role="img"></canvas></div>
+        <div class="legend">
+          <span><i style="--c:var(--cheap)"></i>${t("cheap")}</span><span><i style="--c:var(--normal)"></i>${t("normal")}</span>
+          <span><i style="--c:var(--pricey)"></i>${t("pricey")}</span>
+          <span><i class="band" style="--c:var(--text-primary)"></i>${t("legendRun")}</span>
+          <span><i style="--c:var(--window);outline:1px solid var(--border)"></i>${t("legendWindow")}</span>
+          ${S.green ? `<span><i style="--c:var(--green)"></i>${t("greenTitle")}</span>` : ""}
+        </div>
+      </div>
+      <div class="card" id="heat-card"></div>
+      </div>
+      <div class="col">
+      <div class="card" id="planner"></div>
+      <div class="card" id="tariff"></div>
+      </div>
+    </section>
+    <div class="card" id="map-card" hidden></div>`;
+
+  document.querySelectorAll("#day-seg button").forEach((b) => b.onclick = () => { S.day = b.dataset.day; persist(); render(); });
+  document.querySelectorAll("#mode-seg button").forEach((b) => b.onclick = () => { S.mode = b.dataset.mode; persist(); render(); });
+  $("green-toggle").onchange = (e) => { S.green = e.target.checked; persist(); render(); };
+  if (S.day === "tomorrow" && !S.data.tomorrow_available) S.day = "today";
+
+  renderKpis();
+  renderPlanner();
+  renderTariff();
+  renderHeatmap();
+  renderMap();
+}
+
+function renderStatus() {
+  const gen = new Date(S.data.generated);
+  const ok = S.data.tomorrow_available;
+  $("status").innerHTML = `<span class="dot ${ok ? "" : "wait"}"></span><span>${ok ? t("statusTomorrow") : t("statusWaiting")} · ${t("updated")} ${gen.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit", timeZone: TZ })}</span>`;
+}
+
+/* visible slots for the chart's day filter */
+function visibleRange() {
+  const today = berlinParts(nowTs()).date;
+  const idx = S.slots.map((s, i) => [s, i]);
+  const pick = S.day === "today" ? idx.filter(([s]) => s.day === today) : S.day === "tomorrow" ? idx.filter(([s]) => s.day !== today) : idx;
+  return pick.length ? [pick[0][1], pick.at(-1)[1]] : [0, S.slots.length - 1];
+}
+
+function renderKpis() {
+  const ni = nowIndex();
+  const today = berlinParts(nowTs()).date;
+  const hourBlocks = (daySel) => {
+    // hourly averages of the remaining (future) part of a day
+    const out = {};
+    S.slots.forEach((s) => { if (daySel(s) && s.ts + 900 > nowTs()) { const k = s.ts - (s.ts % 3600); (out[k] ??= []).push(s.price); } });
+    return Object.entries(out).filter(([, v]) => v.length === 4).map(([k, v]) => [+k, v.reduce((a, b) => a + b) / 4]);
+  };
+  const scope = S.data.tomorrow_available ? () => true : (s) => s.day === today;
+  const blocks = hourBlocks(scope);
+  const cheapest = blocks.reduce((a, b) => (b[1] < a[1] ? b : a), blocks[0] || [0, 0]);
+  const priciest = blocks.reduce((a, b) => (b[1] > a[1] ? b : a), blocks[0] || [0, 0]);
+  const cur = ni >= 0 ? S.slots[ni] : null;
+
+  const tomorrowSlots = S.slots.filter((s) => s.day !== today);
+  let vs = `<div class="k">${t("tomorrowVs")}</div><div class="v">${t("tomorrowVsNone")}</div><div class="s">${t("tomorrowVsNoneSub")}</div>`;
+  if (S.data.tomorrow_available && tomorrowSlots.length) {
+    const mean = tomorrowSlots.reduce((a, s) => a + s.price, 0) / tomorrowSlots.length;
+    const hist = S.data.history.map((d) => d.mean);
+    const pct = Math.round(hist.filter((m) => m > mean).length / hist.length * 100);
+    const cheapDay = pct >= 50, shownPct = cheapDay ? pct : 100 - pct;
+    const level = pct >= 67 ? "cheap" : pct <= 33 ? "pricey" : "normal";
+    vs = `<div class="k">${t("tomorrowVs")} <span class="pill ${level}">${t(level)}</span></div>
+      <div class="v">${num(shown(mean), 1)} <small>ct/kWh ${t("avgWord")}</small></div>
+      <div class="s">${t(cheapDay ? "cheaperThan" : "dearerThan", { p: shownPct, n: hist.length })}</div>`;
+  }
+  const hourLabel = (ts) => `${dayWord(ts)} ${fmtTime(ts)}–${fmtTime(ts + 3600)}`;
+  $("kpis").innerHTML = `
+    <div class="card kpi"><div class="k">${t("now")} ${cur ? `<span class="pill ${cur.level}">${t(cur.level)}</span>` : ""}</div>
+      <div class="v">${cur ? num(shown(cur.price), 1) : "–"} <small>ct/kWh</small></div>
+      <div class="s">${cur ? t("nowSub", { spot: num(cur.price / 10, 1), green: cur.green != null ? Math.round(cur.green) : "–" }) : ""}</div></div>
+    <div class="card kpi"><div class="k">${t("cheapestNext")} <span class="pill cheap">${t("cheap")}</span></div>
+      <div class="v">${num(shown(cheapest[1]), 1)} <small>ct/kWh</small></div><div class="s">${blocks.length ? hourLabel(cheapest[0]) : ""}</div></div>
+    <div class="card kpi"><div class="k">${t("priciestNext")} <span class="pill pricey">${t("pricey")}</span></div>
+      <div class="v">${num(shown(priciest[1]), 1)} <small>ct/kWh</small></div><div class="s">${blocks.length ? hourLabel(priciest[0]) : ""}</div></div>
+    <div class="card kpi">${vs}</div>`;
+}
+
+/* ---------- planner ---------- */
+function defaultWindow(p) {
+  const from = firstFutureIndex();
+  let to = S.slots.length - 1;
+  if (p.until === "morning") {
+    const seven = S.slots.findIndex((s, i) => i > from && berlinParts(s.ts).hour === 7 && berlinParts(s.ts).minute === 0);
+    if (seven > 0) to = seven - 1;
+  }
+  return [from, to];
+}
+
+// quick window ends: slot index of tomorrow 07:00 / today 18:00, or -1 while that time isn't in the data
+// (tomorrow's prices only arrive around 13:00, and 18:00 today is gone in the evening)
+function quickTargets() {
+  const from = firstFutureIndex(), today = berlinParts(nowTs()).date;
+  const at = (sameDay, hour) => S.slots.findIndex((s, i) => i > from && (s.day === today) === sameDay && berlinParts(s.ts).hour === hour && berlinParts(s.ts).minute === 0);
+  return { morning: at(false, 7), evening: at(true, 18) };
+}
+
+function renderPlanner() {
+  const key = S.appliance, p = S.plan[key];
+  if (!S.winFor || S.winFor !== key) { S.win = defaultWindow(APPLIANCES[key]); S.winFor = key; }
+  const first = firstFutureIndex(), last = S.slots.length - 1;
+  S.win = [Math.max(first, Math.min(S.win[0], last)), Math.max(first, Math.min(S.win[1], last))];
+  const hoursField = p.pause
+    ? `<div class="field"><div class="field-top"><span>${t("power")}</span><b id="pw-v">${num(p.power, 1)} kW</b></div>
+         <input type="range" id="pw" min="1" max="22" step="0.5" value="${p.power}"></div>`
+    : `<div class="field"><div class="field-top"><span>${t("duration")}</span><b id="hr-v">${num(p.hours, 2).replace(/[.,]00$/, "")} h</b></div>
+         <input type="range" id="hr" min="0.25" max="8" step="0.25" value="${p.hours}"></div>`;
+  $("planner").innerHTML = `
+    <div class="card-head"><div><h2>${t("planner")}</h2><div class="sub">${t("plannerSub")}</div></div></div>
+    <div class="appliances">${Object.keys(APPLIANCES).map((k) => `<button class="appl" data-k="${k}" aria-pressed="${k === key}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>${t(k)}</button>`).join("")}</div>
+    <div class="field"><div class="field-top"><span>${t("energy")}</span><b id="en-v">${num(p.energy, p.energy < 10 ? 1 : 0)} kWh</b></div>
+      <input type="range" id="en" min="${p.min}" max="${p.max}" step="${p.step}" value="${p.energy}"></div>
+    ${hoursField}
+    ${key === "custom" ? `<div class="field"><label class="switch"><input type="checkbox" id="pause" ${p.pause ? "checked" : ""}>${t("canPause")}</label></div>` : ""}
+    <div class="field"><div class="field-top"><span>${t("window")}</span><b id="win-v"></b></div>
+      <div class="dual"><div class="track"></div><div class="fill" id="win-fill"></div>
+        <input type="range" id="w0" min="${first}" max="${last}" step="1" value="${S.win[0]}" aria-label="${t("window")} start">
+        <input type="range" id="w1" min="${first}" max="${last}" step="1" value="${S.win[1]}" aria-label="${t("window")} end"></div>
+      <div class="quick">${Object.entries(quickTargets()).filter(([, i]) => i > 0).map(([q]) =>
+        `<button data-q="${q}">${t({ morning: "quickMorning", evening: "quickEvening" }[q])}</button>`).join("")}<button data-q="all">${t("quickAll")}</button></div>
+    </div>
+    <div id="result"></div>`;
+
+  $("planner").querySelectorAll(".appl").forEach((b) => b.onclick = () => { S.appliance = b.dataset.k; persist(); renderPlanner(); });
+  const bind = (id, fn) => { const el = $(id); if (el) el.oninput = (e) => { fn(+e.target.value); persist(); updatePlan(); }; };
+  bind("en", (v) => { p.energy = v; $("en-v").textContent = `${num(v, v < 10 ? 1 : 0)} kWh`; });
+  bind("pw", (v) => { p.power = v; $("pw-v").textContent = `${num(v, 1)} kW`; });
+  bind("hr", (v) => { p.hours = v; $("hr-v").textContent = `${num(v, 2).replace(/[.,]00$/, "")} h`; });
+  if ($("pause")) $("pause").onchange = (e) => { p.pause = e.target.checked; if (p.pause && !p.power) p.power = 3; persist(); renderPlanner(); };
+  const w0 = $("w0"), w1 = $("w1");
+  w0.oninput = () => { if (+w0.value > +w1.value) w0.value = w1.value; S.win[0] = +w0.value; updatePlan(); };
+  w1.oninput = () => { if (+w1.value < +w0.value) w1.value = w0.value; S.win[1] = +w1.value; updatePlan(); };
+  $("planner").querySelectorAll(".quick button").forEach((b) => b.onclick = () => {
+    const q = b.dataset.q, from = firstFutureIndex();
+    const target = quickTargets()[q];
+    S.win = [from, q !== "all" && target > 0 ? target - 1 : last];
+    w0.value = S.win[0]; w1.value = S.win[1];
+    updatePlan();
+  });
+  updatePlan();
+}
+
+function updatePlan() {
+  const p = S.plan[S.appliance];
+  const [a, b] = S.win, first = firstFutureIndex(), last = S.slots.length - 1;
+  const span = Math.max(1, last - first);
+  $("win-fill").style.left = `calc(8px + ${(a - first) / span} * (100% - 16px))`;
+  $("win-fill").style.width = `calc(${(b - a) / span} * (100% - 16px))`;
+  $("win-v").textContent = `${whenLabel(S.slots[a].ts)} → ${whenLabel(S.slots[b].ts + 900)}`;
+
+  const best = plan(p, a, b);
+  S.best = best;
+  if (!best) {
+    $("result").innerHTML = `<div class="result"><p class="warn">${t(b < a ? "noData" : "tooShort")}</p></div>`;
+  } else {
+    const now = planNow(p, first, last);
+    const green = plan(p, a, b, "green");
+    const fixedCost = p.energy * S.fixed / 100;
+    const save = now ? now.cost - best.cost : 0;
+    const pieces = best.slots.reduce((n, i, k) => n + (k === 0 || i !== best.slots[k - 1] + 1 ? 1 : 0), 0);
+    const avgGreen = (r) => Math.round(r.slots.reduce((s, i) => s + (S.slots[i].green ?? 0), 0) / r.slots.length);
+    $("result").innerHTML = `<div class="result">
+      <div class="when">${p.pause ? t("bestSlots") : t("bestStart")}</div>
+      <div class="big">${whenLabel(best.start)}</div>
+      <div class="fin">${p.pause && pieces > 1 ? t("pieces", { n: pieces, t: whenLabel(best.end) }) : t("finished", { t: whenLabel(best.end) })}</div>
+      <div class="compare">
+        <div><div class="k">${t("cost")}</div><div class="v">${eur(best.cost)}</div></div>
+        <div><div class="k">${t("startNow")}</div><div class="v">${now ? eur(now.cost) : "–"}</div></div>
+        <div class="good"><div class="k">${t("saving")}</div><div class="v">${now ? `${eur(Math.max(0, save))}${now.cost > 0 ? ` · ${Math.round(Math.max(0, save) / now.cost * 100)} %` : ""}` : "–"}</div></div>
+        <div class="${fixedCost >= best.cost ? "good" : "bad"}"><div class="k">${t("vsFixed")} (${ct(S.fixed, 0)})</div>
+          <div class="v">${t(fixedCost >= best.cost ? "cheaperBy" : "dearerBy", { v: eur(Math.abs(fixedCost - best.cost)) })}</div></div>
+      </div>
+      ${green && green.start !== best.start && S.slots.some((s) => s.green != null) ? `<div class="alt"><span class="pill green">${Math.round(avgGreen(green))} %</span>
+        <span>${t("greenest", { t: whenLabel(green.start), g: avgGreen(green), c: eur(green.cost) })}</span></div>` : ""}
+    </div>`;
+  }
+  drawCharts();
+}
+
+/* ---------- charts ---------- */
+const overlay = {
+  id: "overlay",
+  beforeDatasetsDraw(chart, _, o) {
+    const { ctx, chartArea: ca, scales: { x } } = chart;
+    const px = (i) => x.getPixelForValue(i - o.offset);
+    const half = (x.getPixelForValue(1) - x.getPixelForValue(0)) / 2;
+    ctx.save();
+    // the planner's time window
+    if (o.win) { ctx.fillStyle = o.windowColor; ctx.fillRect(px(o.win[0]) - half, ca.top, px(o.win[1]) - px(o.win[0]) + 2 * half, ca.bottom - ca.top); }
+    // day boundaries with a label for each day
+    ctx.strokeStyle = o.grid; ctx.fillStyle = o.muted; ctx.font = "600 11px Inter, sans-serif"; ctx.textBaseline = "top";
+    o.days.forEach(([i, label]) => {
+      const xx = px(i) - half;
+      if (i > o.offset) { ctx.beginPath(); ctx.moveTo(xx, ca.top); ctx.lineTo(xx, ca.bottom); ctx.stroke(); }
+      ctx.fillText(label, Math.max(ca.left, xx) + 6, ca.top + 2);
+    });
+    ctx.restore();
+  },
+  afterDatasetsDraw(chart, _, o) {
+    const { ctx, chartArea: ca, scales: { x } } = chart;
+    const px = (i) => x.getPixelForValue(i - o.offset);
+    const half = (x.getPixelForValue(1) - x.getPixelForValue(0)) / 2;
+    ctx.save();
+    // best run: a solid strip under the chosen slots
+    if (o.run) {
+      ctx.fillStyle = o.text;
+      for (const i of o.run) if (i >= o.offset && i <= o.offset + chart.data.labels.length - 1) ctx.fillRect(px(i) - half, ca.bottom + 2, 2 * half + .6, 7);
+    }
+    // now
+    if (o.now != null && o.now >= o.offset) {
+      const xx = px(o.now) - half + o.nowFrac * 2 * half;
+      ctx.strokeStyle = o.text; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(xx, ca.top + 16); ctx.lineTo(xx, ca.bottom); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = o.text; ctx.font = "600 11px Inter, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+      ctx.fillText(o.nowLabel, xx, ca.top + 15);
+    }
+    ctx.restore();
+  },
+};
+
+function drawCharts() {
+  const [from, to] = visibleRange();
+  const vis = S.slots.slice(from, to + 1);
+  const labels = vis.map((s) => s.ts);
+  const color = { cheap: css("--cheap"), normal: css("--normal"), pricey: css("--pricey") };
+  const muted = css("--text-muted"), grid = css("--grid"), text = css("--text-primary");
+  const ni = nowIndex();
+  const days = [];
+  vis.forEach((s, k) => { if (k === 0 || s.day !== vis[k - 1].day) days.push([from + k, fmtDay(s.ts, { weekday: "long", day: "numeric", month: "numeric" })]); });
+  const common = {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    layout: { padding: { top: 4, bottom: 12 } },
+    interaction: { mode: "index", intersect: false },
+  };
+  const xScale = {
+    grid: { display: false }, border: { display: false },
+    ticks: { color: muted, autoSkip: false, maxRotation: 0,
+      callback: (v, i) => { const p = berlinParts(labels[i]); return p.minute === 0 && p.hour % (vis.length > 120 ? 6 : 3) === 0 ? String(p.hour).padStart(2, "0") + ":00" : ""; } },
+  };
+  const yFit = (scale) => { scale.width = 46; };
+
+  charts.price?.destroy();
+  charts.price = new Chart($("price-chart"), {
+    type: "bar",
+    data: { labels, datasets: [{ data: vis.map((s) => shown(s.price)), backgroundColor: vis.map((s) => color[s.level]),
+      borderRadius: 2, borderSkipped: false, categoryPercentage: 1, barPercentage: .78 }] },
+    options: {
+      ...common,
+      plugins: {
+        legend: { display: false }, tooltip: { enabled: false, external: priceTooltip },
+        overlay: { offset: from, win: S.win, run: S.best?.slots, now: ni >= 0 ? ni : null,
+          nowFrac: ni >= 0 ? (nowTs() - S.slots[ni].ts) / 900 : 0, nowLabel: t("nowLine"),
+          windowColor: css("--window"), grid, muted, text, days },
+      },
+      scales: { x: xScale, y: { grid: { color: grid }, border: { display: false }, afterFit: yFit,
+        ticks: { color: muted, callback: (v) => num(v, 0) } } },
+    },
+    plugins: [overlay],
+  });
+  $("chart-sub").textContent = S.mode === "spot" ? t("chartSubSpot") : t("chartSubEnd");
+
+  charts.green?.destroy();
+  if (S.green && $("green-chart")) {
+    const g = css("--green");
+    charts.green = new Chart($("green-chart"), {
+      type: "line",
+      data: { labels, datasets: [{ data: vis.map((s) => s.green), borderColor: g, borderWidth: 1.5, pointRadius: 0, tension: .25,
+        fill: "origin", backgroundColor: g + "33" }] },
+      options: { ...common, layout: { padding: { top: 2 } },
+        plugins: { legend: { display: false }, tooltip: { enabled: false }, overlay: { offset: from, days: [], grid, muted, text, windowColor: "transparent" } },
+        scales: { x: { ...xScale, ticks: { display: false } },
+          y: { min: 0, suggestedMax: 100, grid: { color: grid }, border: { display: false }, afterFit: yFit,
+            ticks: { color: muted, maxTicksLimit: 3, callback: (v) => `${v} %` } } } },
+      plugins: [overlay],
+    });
+  }
+}
+
+function priceTooltip({ chart, tooltip }) {
+  const tip = $("price-tip");
+  if (!tooltip.opacity || !tooltip.dataPoints?.length) { tip.style.display = "none"; return; }
+  const [from] = visibleRange();
+  const s = S.slots[from + tooltip.dataPoints[0].dataIndex];
+  tip.innerHTML = `<b>${fmtDay(s.ts, { weekday: "short" })} ${fmtTime(s.ts)}–${fmtTime(s.ts + 900)}</b><br>
+    ${num(endPrice(s.price), 1)} ct/kWh <span class="pill ${s.level}">${t(s.level)}</span>
+    <small>${t("spot")} ${num(s.price / 10, 2)} ct${s.green != null ? " · " + t("greenShare", { g: Math.round(s.green) }) : ""}</small>`;
+  tip.style.display = "block";
+  let x = tooltip.caretX + 12;
+  if (x + tip.offsetWidth > chart.width) x = tooltip.caretX - tip.offsetWidth - 12;
+  tip.style.left = `${x}px`; tip.style.top = `${Math.max(0, tooltip.caretY - 40)}px`;
+}
+
+/* ---------- tariff ---------- */
+function renderTariff() {
+  $("tariff").innerHTML = `
+    <div class="card-head"><div><h2>${t("tariff")}</h2><div class="sub">${t("tariffSub")}</div></div></div>
+    <div class="field"><div class="field-top"><span>${t("surcharge")}</span><b id="sur-v">${ct(S.surcharge)}/kWh</b></div>
+      <input type="range" id="sur" min="0" max="35" step="0.5" value="${S.surcharge}"></div>
+    <div class="field"><label class="switch"><input type="checkbox" id="vat" ${S.vat ? "checked" : ""}>${t("vat")}</label></div>
+    <div class="field"><div class="field-top"><span>${t("fixed")}</span><b id="fix-v">${ct(S.fixed, 0)}/kWh</b></div>
+      <input type="range" id="fix" min="20" max="50" step="1" value="${S.fixed}"></div>
+    <div class="tariff-sum" id="tariff-sum"></div>
+    <p class="hint">${t("tariffHint")}</p>`;
+  const refresh = () => { persist(); renderTariffSum(); renderKpis(); updatePlan(); renderRails(); };
+  $("sur").oninput = (e) => { S.surcharge = +e.target.value; $("sur-v").textContent = `${ct(S.surcharge)}/kWh`; refresh(); };
+  $("vat").onchange = (e) => { S.vat = e.target.checked; refresh(); };
+  $("fix").oninput = (e) => { S.fixed = +e.target.value; $("fix-v").textContent = `${ct(S.fixed, 0)}/kWh`; refresh(); };
+  renderTariffSum();
+}
+function renderTariffSum() {
+  const today = berlinParts(nowTs()).date;
+  const avg = (sel) => { const xs = S.slots.filter(sel); return xs.length ? xs.reduce((a, s) => a + endPrice(s.price), 0) / xs.length : null; };
+  const a = avg((s) => s.day === today), b = S.data.tomorrow_available ? avg((s) => s.day !== today) : null;
+  $("tariff-sum").innerHTML = `<div><div class="k">${t("avgToday")}</div><div class="v">${a != null ? ct(a) : "–"}</div></div>
+    <div><div class="k">${t("avgTomorrow")}</div><div class="v">${b != null ? ct(b) : "–"}</div></div>`;
+}
+
+/* ---------- heatmap: typical cheap hours ---------- */
+function renderHeatmap() {
+  const hist = S.data.history;
+  const all = hist.flatMap((d) => d.hourly.filter((v) => v != null));
+  const ramp = Array.from({ length: 7 }, (_, i) => css(`--div-${i + 1}`));
+  const cuts = [1, 2, 3, 4, 5, 6].map((k) => quantile(all, k / 7));
+  const colorOf = (v) => ramp[cuts.findIndex((c) => v <= c) === -1 ? 6 : cuts.findIndex((c) => v <= c)];
+  // average per hour of day -> cheapest and most expensive 2-hour blocks
+  const perHour = Array.from({ length: 24 }, (_, h) => { const xs = hist.map((d) => d.hourly[h]).filter((v) => v != null); return xs.reduce((a, b) => a + b, 0) / xs.length; });
+  const block = (sign) => { let best = 0; for (let h = 0; h < 23; h++) if (sign * (perHour[h] + perHour[h + 1]) < sign * (perHour[best] + perHour[best + 1])) best = h; return best; };
+  const hl = (h) => lang === "de" ? `${h}–${h + 2} Uhr` : `${h}:00–${h + 2}:00`;
+  const c = block(1), e = block(-1);
+  const dateLabel = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString(locale(), { weekday: "short", day: "numeric", month: "numeric", timeZone: "UTC" });
+  $("heat-card").innerHTML = `
+    <div class="card-head"><div><h2>${t("heatTitle")}</h2><div class="sub">${t("heatSub", { n: hist.length })}</div></div></div>
+    <div class="typical"><span class="pill cheap">${t("typicalCheap", { h: hl(c) })}</span><span class="pill pricey">${t("typicalPricey", { h: hl(e) })}</span></div>
+    <div class="heat" id="heat">
+      <div></div>${Array.from({ length: 24 }, (_, h) => `<div class="hl">${h % 3 === 0 ? h : ""}</div>`).join("")}
+      ${hist.map((d) => `<div class="rl">${dateLabel(d.date)}</div>${d.hourly.map((v, h) =>
+        `<div class="cell" style="--c:${v == null ? "var(--surface-3)" : colorOf(v)}" data-tip="${esc(dateLabel(d.date))} ${h}:00 · ${v == null ? "–" : num(S.mode === "spot" ? v / 10 : endPrice(v), 1) + " ct/kWh"}"></div>`).join("")}`).join("")}
+      <div class="tooltip" id="heat-tip"></div>
+    </div>
+    <div class="heat-legend">${t("heatLow")}<span class="ramp">${ramp.map((c) => `<i style="--c:${c}"></i>`).join("")}</span>${t("heatHigh")}</div>`;
+  const heat = $("heat"), tip = $("heat-tip");
+  heat.onmousemove = (ev) => {
+    const cell = ev.target.closest(".cell");
+    if (!cell) { tip.style.display = "none"; return; }
+    tip.textContent = cell.dataset.tip; tip.style.display = "block";
+    const box = heat.getBoundingClientRect();
+    let x = ev.clientX - box.left + 12;
+    if (x + tip.offsetWidth > box.width) x -= tip.offsetWidth + 24;
+    tip.style.left = `${x}px`; tip.style.top = `${ev.clientY - box.top + 12}px`;
+  };
+  heat.onmouseleave = () => { tip.style.display = "none"; };
+}
+
+/* ---------- Europe map: neighbours' market prices, hour by hour ---------- */
+const ZONE_NAMES = {
+  de: { "DE-LU": "Deutschland", FR: "Frankreich", NL: "Niederlande", BE: "Belgien", AT: "Österreich", CH: "Schweiz", PL: "Polen",
+    CZ: "Tschechien", DK1: "Dänemark (West)", SE4: "Schweden (Süd)", NO2: "Norwegen (Süd)", "IT-North": "Italien (Nord)",
+    SK: "Slowakei", HU: "Ungarn", SI: "Slowenien", ES: "Spanien", PT: "Portugal" },
+  en: { "DE-LU": "Germany", FR: "France", NL: "Netherlands", BE: "Belgium", AT: "Austria", CH: "Switzerland", PL: "Poland",
+    CZ: "Czechia", DK1: "Denmark (west)", SE4: "Sweden (south)", NO2: "Norway (south)", "IT-North": "Italy (north)",
+    SK: "Slovakia", HU: "Hungary", SI: "Slovenia", ES: "Spain", PT: "Portugal" },
+};
+S.map = { day: 0, hour: (() => { const p = berlinParts(nowTs()); return p.hour + p.minute / 60; })(), anim: null };  // start at the current time
+
+async function loadEurope() {
+  try {
+    const v = Math.floor(Date.now() / 600000);
+    const [eu, geo] = await Promise.all([
+      fetch(`data/europe.json?v=${v}`).then((r) => r.json()),
+      S.geo ? S.geo : fetch("data/europe-map.json").then((r) => r.json()),
+    ]);
+    const changed = !S.eu || eu.generated !== S.eu.generated;
+    S.eu = eu; S.geo = geo;
+    if (changed && S.data) renderMap();
+  } catch { /* the map is optional: without its data the card stays hidden */ }
+}
+
+const mapDays = () => (S.eu ? S.eu.days.filter((d) => Object.values(S.eu.zones).some((z) => z.hourly[d])) : []);
+// price at a fractional hour (e.g. 8.4 = 08:24): hourly means sit at the middle of their hour, straight lines between them
+const mapValue = (zone, day, hour) => {
+  const xs = S.eu.zones[zone]?.hourly[day];
+  if (!xs) return null;
+  if (hour == null) { const v = xs.filter((x) => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; }
+  const p = Math.min(23, Math.max(0, hour - 0.5)), i = Math.floor(p), f = p - i;
+  const a = xs[i], b = xs[Math.min(23, i + 1)];
+  if (a == null || b == null) return a ?? b ?? null;
+  return a + (b - a) * f;
+};
+const MAP_SPEED = 1.5;  // hours of the day per second while playing (whole day in 16 s)
+const hexRgb = (h) => { const n = parseInt(h.replace("#", ""), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
+const clockLabel = (h) => {
+  const m = Math.min(1439, Math.round(h * 60 / 5) * 5);
+  const txt = `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
+  return lang === "de" ? `${txt} Uhr` : txt;
+};
+
+function renderMap() {
+  const card = $("map-card");
+  if (!card) return;
+  cancelAnimationFrame(S.map.anim); S.map.anim = null;
+  const days = mapDays();
+  if (!S.geo || !days.length) { card.hidden = true; return; }
+  card.hidden = false;
+  S.map.day = Math.min(S.map.day, days.length - 1);
+  const zoneOf = {};
+  for (const [z, info] of Object.entries(S.eu.zones)) for (const c of info.countries) zoneOf[c] = z;
+  const paths = Object.entries(S.geo.countries).map(([code, g]) =>
+    `<path d="${g.d}" data-zone="${zoneOf[code] || ""}" class="${zoneOf[code] ? "zone" : "land"}${code === "DEU" ? " de" : ""}"></path>`).join("");
+  const de = S.geo.countries.DEU;
+  const dayLabel = (d) => d === berlinParts(nowTs()).date ? t("today") : t("tomorrow");
+  card.innerHTML = `
+    <div class="card-head">
+      <div><h2>${t("mapTitle")}</h2><div class="sub">${t("mapSub")}</div></div>
+      <span class="spacer"></span>
+      ${days.length > 1 ? `<div class="seg" id="map-days">${days.map((d, i) =>
+        `<button data-i="${i}" aria-pressed="${i === S.map.day}">${dayLabel(d)[0].toUpperCase() + dayLabel(d).slice(1)}</button>`).join("")}</div>` : ""}
+    </div>
+    <div class="map-wrap">
+      <div class="map-box">
+        <svg class="eu" viewBox="${S.geo.viewBox}" role="img" aria-label="${t("mapTitle")}">${paths}
+          ${de ? `<path d="${de.d}" class="de-ring"></path>` : ""}</svg>
+        <div class="tooltip" id="map-tip"></div>
+      </div>
+      <div class="map-side">
+        <div class="map-now" id="map-now"></div>
+        <ol class="rank" id="map-rank"></ol>
+      </div>
+    </div>
+    <div class="map-controls">
+      <button class="icon-btn" id="map-play" title="${t("mapPlay")}"></button>
+      <input type="range" id="map-hour" min="0" max="24" step="any" value="${S.map.hour ?? 12}" aria-label="${t("mapTitle")}">
+      <button class="chip" id="map-avg" aria-pressed="${S.map.hour == null}">${t("mapAvg")}</button>
+    </div>
+    <div class="heat-legend" id="map-legend"></div>
+    <p class="hint">${t("mapHint")}</p>`;
+
+  card.querySelectorAll("#map-days button").forEach((b) => b.onclick = () => { S.map.day = +b.dataset.i; renderMap(); });
+  const slider = $("map-hour");
+  slider.oninput = () => { stop(); S.map.hour = Math.min(23.99, +slider.value); updateMap(); };
+  $("map-avg").onclick = () => { stop(); S.map.hour = S.map.hour == null ? Math.min(23.99, +slider.value) : null; updateMap(); };
+  const stop = () => { cancelAnimationFrame(S.map.anim); S.map.anim = null; playIcon(); };
+  const playIcon = () => {
+    $("map-play").innerHTML = S.map.anim
+      ? '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l12-7.5z"/></svg>';
+    $("map-play").title = S.map.anim ? t("mapPause") : t("mapPlay");
+  };
+  $("map-play").onclick = () => {
+    if (S.map.anim) { stop(); return; }
+    if (S.map.hour == null || S.map.hour >= 23.9) S.map.hour = 0;
+    let last = performance.now();
+    const step = (now) => {
+      S.map.hour = Math.min(23.99, S.map.hour + (now - last) / 1000 * MAP_SPEED);
+      last = now;
+      slider.value = S.map.hour;
+      updateMap();
+      if (S.map.hour >= 23.99) { stop(); return; }
+      S.map.anim = requestAnimationFrame(step);
+    };
+    S.map.anim = requestAnimationFrame(step);
+    playIcon();
+  };
+  playIcon();
+
+  // hover: country tooltip, and highlight between map and ranking
+  const box = card.querySelector(".map-box"), tip = $("map-tip");
+  box.onmousemove = (ev) => {
+    const z = ev.target.closest("path.zone")?.dataset.zone;
+    S.map.hover = z || null;
+    highlight(z);
+    if (!z) { tip.style.display = "none"; return; }
+    tip.innerHTML = zoneTip(z); tip.style.display = "block";
+    const r = box.getBoundingClientRect();
+    let x = ev.clientX - r.left + 14;
+    if (x + tip.offsetWidth > r.width) x -= tip.offsetWidth + 28;
+    tip.style.left = `${x}px`; tip.style.top = `${Math.max(0, ev.clientY - r.top - 20)}px`;
+  };
+  box.onmouseleave = () => { tip.style.display = "none"; S.map.hover = null; highlight(null); };
+  $("map-rank").onmouseover = (ev) => highlight(ev.target.closest("li")?.dataset.zone);
+  $("map-rank").onmouseleave = () => highlight(null);
+  updateMap();
+}
+
+function highlight(zone) {
+  document.querySelectorAll("#map-card path.zone").forEach((p) => p.classList.toggle("hot", !!zone && p.dataset.zone === zone));
+  document.querySelectorAll("#map-rank li").forEach((li) => li.classList.toggle("hot", !!zone && li.dataset.zone === zone));
+}
+
+function zoneTip(z) {
+  const day = mapDays()[S.map.day], v = mapValue(z, day, S.map.hour), dv = mapValue("DE-LU", day, S.map.hour);
+  let cmp = "";
+  if (z !== "DE-LU" && v != null && dv != null) {
+    const diff = v - dv;
+    // percentages are meaningless around zero: compare in ct then
+    cmp = Math.abs(diff) < 0.5 ? t("mapSame")
+      : Math.abs(dv) < 20 ? `${diff < 0 ? "−" : "+"}${num(Math.abs(diff) / 10, 1)} ct`
+      : t(diff < 0 ? "mapCheaper" : "mapDearer", { p: Math.round(Math.abs(diff / dv) * 100) });
+  }
+  return `<b>${ZONE_NAMES[lang][z]}</b><br>${v == null ? "–" : ct(v / 10) + "/kWh"}${cmp ? `<small>${cmp}</small>` : ""}`;
+}
+
+function updateMap() {
+  const days = mapDays(), day = days[S.map.day], h = S.map.hour;
+  // one colour scale for the whole day, so colours stay comparable while the time moves;
+  // colours blend continuously between the 7 steps of the heatmap's scale
+  const all = Object.keys(S.eu.zones).flatMap((z) => (S.eu.zones[z].hourly[day] || []).filter((v) => v != null));
+  const ramp = Array.from({ length: 7 }, (_, i) => css(`--div-${i + 1}`));
+  const rgb = ramp.map(hexRgb);
+  const knots = [0, 1, 2, 3, 4, 5, 6].map((k) => quantile(all, k / 6));
+  const colorOf = (v) => {
+    let pos = 0;
+    if (v >= knots[6]) pos = 6;
+    else if (v > knots[0]) { const k = knots.findIndex((c) => v <= c) - 1; pos = k + (v - knots[k]) / ((knots[k + 1] - knots[k]) || 1); }
+    const i = Math.min(5, Math.floor(pos)), f = pos - i;
+    const c = rgb[i].map((x, j) => Math.round(x + (rgb[i + 1][j] - x) * f));
+    return `rgb(${c.join(",")})`;
+  };
+  document.querySelectorAll("#map-card path.zone").forEach((p) => {
+    const v = mapValue(p.dataset.zone, day, h);
+    p.style.fill = v == null ? "" : colorOf(v);
+  });
+  const rows = Object.keys(S.eu.zones).map((z) => [z, mapValue(z, day, h)]).filter(([, v]) => v != null).sort((a, b) => a[1] - b[1]);
+  const deRank = rows.findIndex(([z]) => z === "DE-LU") + 1;
+  const dv = mapValue("DE-LU", day, h);
+  $("map-now").innerHTML = `<div class="k">${h == null ? t("mapAvgDay") : clockLabel(h)}</div>
+    <div class="v">${dv == null ? "–" : num(dv / 10, 1)} <small>ct · ${t("mapDe")}</small></div>
+    ${deRank ? `<div class="s">${t("mapRank", { r: deRank, n: rows.length })}</div>` : ""}`;
+  $("map-rank").innerHTML = rows.map(([z, v]) => `<li data-zone="${z}" class="${z === "DE-LU" ? "me" : ""}">
+    <i style="--c:${colorOf(v)}"></i><span>${ZONE_NAMES[lang][z]}</span><b>${num(v / 10, 1)}</b></li>`).join("");
+  if (S.map.hover) $("map-tip").innerHTML = zoneTip(S.map.hover);
+  $("map-avg").setAttribute("aria-pressed", h == null);
+  $("map-hour").classList.toggle("off", h == null);
+  $("map-legend").innerHTML = `${ct(Math.min(...all) / 10)}<span class="grad" style="--g:${ramp.join(",")}"></span>${ct(Math.max(...all) / 10)}`;
+}
+
+/* ---------- intro: today's price curve behind the headline ---------- */
+function renderHero() {
+  const today = berlinParts(nowTs()).date;
+  const day = S.slots.filter((s) => s.day === today);
+  if (day.length < 8) return;
+  const W = 1000, H = 210, top = 34, bottom = 74;  // bottom room for the "go to prices" button
+  const vals = day.map((s) => s.price);
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const x = (i) => (i + 0.5) / day.length * W;
+  const y = (v) => top + (1 - (v - lo) / (hi - lo || 1)) * (H - top - bottom);
+  const pts = day.map((s, i) => [x(i), y(s.price)]);
+  // smooth line through the points (Catmull-Rom as cubic Béziers)
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    d += `C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  const col = { cheap: css("--cheap"), normal: css("--normal"), pricey: css("--pricey") };
+  const stops = day.map((s, i) => `<stop offset="${(x(i) / W * 100).toFixed(2)}%" stop-color="${col[s.level]}"/>`).join("");
+  const iLo = vals.indexOf(lo), iHi = vals.indexOf(hi);
+  const ni = day.findIndex((s) => s.ts <= nowTs() && nowTs() < s.ts + 900);
+  const first = !S.heroDrawn;
+  S.heroDrawn = true;
+  const el = $("hero-curve");
+  el.className = `hero-curve${first ? " draw" : ""}`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+    <defs><linearGradient id="hg" x1="0" x2="1" y1="0" y2="0">${stops}</linearGradient>
+      <linearGradient id="hf" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${css("--text-primary")}" stop-opacity=".07"/><stop offset="1" stop-color="${css("--text-primary")}" stop-opacity="0"/></linearGradient></defs>
+    <path class="area" d="${d}L${W},${H}L0,${H}Z" fill="url(#hf)"/>
+    <path class="line" d="${d}" stroke="url(#hg)" vector-effect="non-scaling-stroke"/>
+  </svg>`;
+  // labels and the "now" dot in a second, unstretched layer so text and circles keep their shape
+  const box = el.getBoundingClientRect();
+  const sx = box.width / W, sy = box.height / H;
+  const line = el.querySelector(".line");
+  if (first) line.style.setProperty("--len", Math.ceil(line.getTotalLength() * Math.max(sx, sy, 1) + 50));
+  const mark = (i, label, below) => {
+    // the cheapest point sits near the bottom edge, so both labels go above their point
+    const px = Math.min(box.width - 90, Math.max(90, x(i) * sx)), py = y(vals[i]) * sy - (below ? 14 : 12);
+    return `<text class="mark-text" x="${px}" y="${py}" text-anchor="middle">${label} · ${fmtTime(day[i].ts)}</text>`;
+  };
+  el.insertAdjacentHTML("beforeend", `<svg class="marks" style="position:absolute;inset:0" width="${box.width}" height="${box.height}" aria-hidden="true">
+    ${mark(iLo, t("heroLow"), true)}${mark(iHi, t("heroHigh"), false)}
+    ${ni >= 0 ? `<circle class="now-ring" cx="${x(ni) * sx}" cy="${y(vals[ni]) * sy}" r="5"/><circle class="now-dot" cx="${x(ni) * sx}" cy="${y(vals[ni]) * sy}" r="5"/>` : ""}
+  </svg>`);
+
+  const heroH = $("hero").getBoundingClientRect().height, curveTop = heroH - box.height;
+  const curveAt = (px) => curveTop + y(vals[Math.max(0, Math.min(day.length - 1, Math.round(px / sx / W * day.length - 0.5)))]) * sy;
+  renderPower([x(0) * sx, curveTop + y(vals[0]) * sy], [x(day.length - 1) * sx, curveTop + y(vals.at(-1)) * sy], curveAt);
+
+  const cur = ni >= 0 ? day[ni] : null;
+  const hours = {};
+  day.forEach((s) => { const h = berlinParts(s.ts).hour; (hours[h] ??= []).push(s.price); });
+  const sum = (xs) => xs.reduce((a, b) => a + b, 0);
+  const full = Object.entries(hours).filter(([, v]) => v.length === 4);
+  const hMin = full.length ? full.reduce((a, b) => (sum(b[1]) < sum(a[1]) ? b : a)) : null;
+  const hl = (h) => (lang === "de" ? `${h}–${+h + 1} Uhr` : `${h}:00–${+h + 1}:00`);
+  $("hero-live").innerHTML = `
+    ${cur ? `<span class="chip-live">${t("heroNow")} <b>${num(shown(cur.price), 1)} ct/kWh</b> <span class="pill ${cur.level}">${t(cur.level)}</span></span>` : ""}
+    ${hMin ? `<span class="chip-live">${t("heroCheapest")} <b>${hl(hMin[0])}</b></span>` : ""}
+    ${cur?.green != null ? `<span class="chip-live">${t("heroGreen")} <b>${Math.round(cur.green)} %</b></span>` : ""}`;
+}
+/* ---------- intro: main switch that powers the price curve ---------- */
+// orthogonal path through the points with rounded corners
+function cablePath(pts, r = 18) {
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [px, py] = pts[i - 1], [cx, cy] = pts[i], [nx, ny] = pts[i + 1];
+    const k1 = Math.min(r, Math.hypot(cx - px, cy - py) / 2), k2 = Math.min(r, Math.hypot(nx - cx, ny - cy) / 2);
+    const a = [cx - Math.sign(cx - px) * k1, cy - Math.sign(cy - py) * k1], b = [cx + Math.sign(nx - cx) * k2, cy + Math.sign(ny - cy) * k2];
+    d += `L${a[0]},${a[1]}Q${cx},${cy} ${b[0]},${b[1]}`;
+  }
+  const last = pts.at(-1);
+  return d + `L${last[0]},${last[1]}`;
+}
+
+const POWER_OFF = 30, POWER_ON = -30;  // lever angle in degrees (down = off, up = on)
+function renderPower(start, end, curveAt) {
+  const svg = $("power"), hero = $("hero");
+  const hr = hero.getBoundingClientRect();
+  const W = hr.width, H = hr.height;
+  // only where there is room around the text column
+  if (W < 1400 || H < 700) { svg.innerHTML = ""; S.power = null; hero.classList.remove("powered"); return; }
+  hero.classList.add("powered");
+  const rel = (el) => { const r = el.getBoundingClientRect(); return { l: r.left - hr.left, t: r.top - hr.top, r: r.right - hr.left, b: r.bottom - hr.top }; };
+  const eb = rel(hero.querySelector(".eyebrow")), h1 = rel(hero.querySelector("h1")), lead = rel(hero.querySelector(".lead"));
+  const feats = rel(hero.querySelector(".hero-feats"));
+  const key = [W, H, ...start, ...end, eb.t, h1.l, h1.r, lead.b, feats.b].map((v) => Math.round(v)).join() + lang;
+  if (S.power?.key === key) return;
+
+  // breaker at the top middle
+  const cx = Math.round(W / 2), cy = 64, pw = 116, ph = 50;
+  const L = [cx - pw / 2 - 8, cy], R = [cx + pw / 2 + 8, cy], B = [cx, cy + ph / 2 + 8];
+  // ring around the title (eyebrow, headline, text)
+  const ring = { t: Math.round(eb.t - 22), b: Math.round(lead.b + 18), l: Math.round(h1.l - 36), r: Math.round(h1.r + 36) };
+  const inner = Math.round((W - 1080) / 2 - 36);  // just outside the text column
+  const edge = 18, mid = Math.round((edge + inner) / 2), under = Math.round(feats.b + 30);
+  // every rail starts at the breaker and ends on the price curve; [points, ms the current needs to arrive]
+  const rails = [
+    // around the title, one each way, then down its sides
+    [[B, [cx, ring.t], [ring.l, ring.t], [ring.l, curveAt(ring.l)]], 2300],
+    [[B, [cx, ring.t], [ring.r, ring.t], [ring.r, curveAt(ring.r)]], 2300],
+    // around the title, then under the feature tiles, meeting in the middle of the curve
+    [[B, [cx, ring.t], [ring.l, ring.t], [ring.l, under], [cx - 40, under], [cx - 40, curveAt(cx - 40)]], 2900],
+    [[B, [cx, ring.t], [ring.r, ring.t], [ring.r, under], [cx + 40, under], [cx + 40, curveAt(cx + 40)]], 2900],
+    // along the top edge and down the sides of the screen into the ends of the curve
+    [[L, [L[0] - 26, cy], [L[0] - 26, edge], [edge, edge], [edge, start[1]]], 3200],
+    [[R, [R[0] + 26, cy], [R[0] + 26, edge], [W - edge, edge], [W - edge, end[1]]], 3200],
+    // halfway between the screen edge and the text column
+    [[L, [L[0] - 13, cy], [L[0] - 13, 41], [mid, 41], [mid, curveAt(mid)]], 2600],
+    [[R, [R[0] + 13, cy], [R[0] + 13, 41], [W - mid, 41], [W - mid, curveAt(W - mid)]], 2600],
+    // straight out beside the text column
+    [[L, [inner, cy], [inner, curveAt(inner)]], 1900],
+    [[R, [W - inner, cy], [W - inner, curveAt(W - inner)]], 1900],
+  ].map(([pts, ms]) => ({ pts: pts.map(([x, y]) => [Math.round(x), Math.round(y)]), ms }));
+  const pivot = [cx - 22, cy];
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = `
+    ${rails.map((r) => `<path class="cable" d="${cablePath(r.pts)}"/>`).join("")}
+    ${rails.map((r) => `<path class="lit" data-ms="${r.ms}" d="${cablePath(r.pts)}"/>`).join("")}
+    ${rails.map((r) => `<circle class="node" data-ms="${r.ms}" cx="${r.pts.at(-1)[0]}" cy="${r.pts.at(-1)[1]}" r="4"/>`).join("")}
+    <g class="switch" id="pw-switch" role="button" aria-label="${t("pwTitle")}"><title>${t("pwTitle")}</title>
+      ${[L, R].map(([x, y]) => `<rect class="terminal" x="${x - 4}" y="${y - 7}" width="12" height="14" rx="3" transform="translate(${x < cx ? 0 : -4},0)"/>`).join("")}
+      <rect class="terminal" x="${B[0] - 7}" y="${B[1] - 12}" width="14" height="12" rx="3"/>
+      <rect class="panel" x="${cx - pw / 2}" y="${cy - ph / 2}" width="${pw}" height="${ph}" rx="12"/>
+      <circle class="lamp" id="pw-lamp" cx="${cx - 42}" cy="${cy}" r="5"/>
+      <g id="pw-lever" style="transform-box: view-box; transform-origin: ${pivot[0]}px ${pivot[1]}px; transform: rotate(${POWER_OFF}deg)">
+        <rect class="arm" x="${pivot[0]}" y="${pivot[1] - 3.5}" width="54" height="7" rx="3.5"/>
+        <rect class="grip" x="${pivot[0] + 48}" y="${pivot[1] - 10}" width="28" height="20" rx="7"/>
+        <rect class="grip-hi" x="${pivot[0] + 52}" y="${pivot[1] - 7}" width="20" height="4.5" rx="2.2"/>
+      </g>
+      <circle class="arm" cx="${pivot[0]}" cy="${pivot[1]}" r="8"/><circle class="screw" cx="${pivot[0]}" cy="${pivot[1]}" r="3"/>
+      ${[L, R, [B[0], B[1] - 6]].map(([x, y]) => `<circle class="spark" cx="${x}" cy="${y}" r="6"/>`).join("")}
+    </g>`;
+  S.power = { key };
+  $("pw-switch").onclick = () => powerCycle(true);
+}
+
+// one "power on" moment, about 3 s: lever up, current runs along every rail (each its own way), title and price curve glow, then off again
+function powerCycle(byUser = false) {
+  if (!S.power || S.power.busy) return;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches && !byUser) return;
+  if (!byUser && (document.hidden || scrollY > $("hero").offsetHeight * 0.7)) return;  // not visible: skip
+  const lever = $("pw-lever"), lamp = $("pw-lamp");
+  if (!lever) return;
+  S.power.busy = true;
+  // timeline (ms): lever up at 220, current leaves at 240 and creeps along, arriving rail by rail (short ones first, 2.1-3.4 s), all lit until 4400, off at 5200
+  const spk = css("--spark"), T = 5200, HOLD = 4400, at = (ms) => ms / T;
+  const rot = (deg) => ({ transform: `rotate(${deg}deg)` });
+  lever.animate([rot(POWER_OFF), { ...rot(POWER_ON), offset: at(220) }, { ...rot(POWER_ON), offset: at(4550) }, { ...rot(POWER_ON + 4), offset: at(4650) }, rot(POWER_OFF)],
+    { duration: T, easing: "cubic-bezier(.3,.8,.3,1)" });
+  document.querySelectorAll("#power .spark").forEach((s) =>
+    s.animate([{ opacity: 0 }, { opacity: 0, offset: at(190) }, { opacity: 1, transform: "scale(1.5)", offset: at(250) }, { opacity: 0, offset: at(450) }, { opacity: 0 }], { duration: T }));
+  lamp.animate([{ fill: css("--surface-3") }, { fill: css("--surface-3"), offset: at(210) }, { fill: spk, offset: at(240) }, { fill: spk, offset: at(4550) }, { fill: css("--surface-3"), offset: at(4750) }],
+    { duration: T });
+  document.querySelectorAll("#power .lit").forEach((p) => {
+    const len = Math.ceil(p.getTotalLength()), arrive = 240 + +p.dataset.ms;
+    p.style.strokeDasharray = `${len} ${len}`;
+    p.animate([{ strokeDashoffset: len, opacity: 1 }, { strokeDashoffset: len, opacity: 1, offset: at(240) }, { strokeDashoffset: 0, opacity: 1, offset: at(arrive), easing: "ease-out" },
+      { strokeDashoffset: 0, opacity: 1, offset: at(HOLD) }, { strokeDashoffset: 0, opacity: 0 }], { duration: T, easing: "ease-in" });
+  });
+  // each rail's end on the curve pops when its current arrives
+  document.querySelectorAll("#power .node").forEach((n) => {
+    const arrive = 240 + +n.dataset.ms;
+    n.animate([{ opacity: 0 }, { opacity: 0, transform: "scale(1)", offset: at(arrive - 20) }, { opacity: 1, transform: "scale(2.2)", offset: at(arrive + 60) },
+      { opacity: 1, transform: "scale(1.2)", offset: at(arrive + 260) }, { opacity: 1, transform: "scale(1.2)", offset: at(HOLD) }, { opacity: 0, transform: "scale(1)" }], { duration: T });
+  });
+  const glowOff = { filter: "drop-shadow(0 0 0 transparent)" }, glowSoft = { filter: `drop-shadow(0 0 10px ${spk}88)` };
+  document.querySelector(".hero h1")?.animate([glowOff, { ...glowOff, offset: at(1500) }, { ...glowSoft, offset: at(1900) }, { ...glowSoft, offset: at(HOLD) }, glowOff], { duration: T });
+  const line = document.querySelector("#hero-curve .line");
+  if (line) {  // the curve lights up with the first arrivals and gets brighter as the rest come in
+    const off = { ...glowOff, strokeWidth: "2.5px" }, half = { filter: `drop-shadow(0 0 5px ${spk})`, strokeWidth: "3.2px" }, on = { filter: `drop-shadow(0 0 9px ${spk})`, strokeWidth: "4px" };
+    line.animate([off, { ...off, offset: at(2100) }, { ...half, offset: at(2400) }, { ...on, offset: at(3500) }, { ...on, offset: at(HOLD) }, off], { duration: T });
+  }
+  setTimeout(() => { if (S.power) S.power.busy = false; }, T + 50);
+}
+setTimeout(() => { powerCycle(); setInterval(powerCycle, 20000); }, 3200);  // after the curve has drawn, then 3 times a minute
+document.fonts?.ready.then(() => { if (S.data) renderHero(); });  // the title ring needs the final font metrics
+
+let heroResize;
+window.addEventListener("resize", () => { clearTimeout(heroResize); heroResize = setTimeout(() => { if (S.data) renderHero(); }, 150); });
+
+/* ---------- side rails: background knowledge & tips ---------- */
+const RI = {
+  steps: '<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>',
+  day: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2"/>',
+  why: '<path d="M3 20h18M6 16v-4M10 16V8M14 16v-6M18 16V5"/>',
+  neg: '<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>',
+  book: '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 21V5"/>',
+  facts: '<path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/>',
+  plug: '<path d="M9 2v5M15 2v5M6 7h12v4a6 6 0 0 1-12 0zM12 17v5"/>',
+  tip: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
+  tariff: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/>',
+  safe: '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+};
+// typical energy per use, kWh (rounded averages for modern appliances)
+const USES = [["wash40", 0.6], ["wash60", 1.0], ["dishEco", 0.9], ["dryerHp", 1.3], ["dryerCond", 2.8], ["oven", 1.0], ["ev100", 18], ["hp", 25]];
+const USE_NAMES = {
+  de: { wash40: "Waschmaschine, 40 °C", wash60: "Waschmaschine, 60 °C", dishEco: "Spülmaschine, Eco", dryerHp: "Trockner mit Wärmepumpe", dryerCond: "Kondenstrockner", oven: "Backofen, 1 Stunde", ev100: "E-Auto, 100 km", hp: "Wärmepumpe, kalter Tag" },
+  en: { wash40: "Wash 40 °C", wash60: "Wash 60 °C", dishEco: "Dishwasher (eco)", dryerHp: "Dryer, heat pump", dryerCond: "Dryer, condenser", oven: "Oven, 1 hour", ev100: "EV, 100 km", hp: "Heat pump, cold day" },
+};
+
+function railStats() {
+  const hist = S.data?.history;
+  if (!hist?.length) return null;
+  const perHour = Array.from({ length: 24 }, (_, h) => { const xs = hist.map((d) => d.hourly[h]).filter((v) => v != null); return xs.reduce((a, b) => a + b, 0) / xs.length; });
+  const isWeekend = (iso) => [0, 6].includes(new Date(iso + "T12:00:00Z").getUTCDay());
+  const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  const we = hist.filter((d) => isWeekend(d.date)).map((d) => d.mean), wd = hist.filter((d) => !isWeekend(d.date)).map((d) => d.mean);
+  const lo = perHour.indexOf(Math.min(...perHour)), hi = perHour.indexOf(Math.max(...perHour));
+  // today's link between renewable share and price (Pearson r)
+  const today = berlinParts(nowTs()).date;
+  const td = S.slots.filter((s) => s.day === today && s.green != null);
+  let r = null;
+  if (td.length > 8) {
+    const mx = mean(td.map((s) => s.green)), my = mean(td.map((s) => s.price));
+    const cov = td.reduce((a, s) => a + (s.green - mx) * (s.price - my), 0);
+    const vx = td.reduce((a, s) => a + (s.green - mx) ** 2, 0), vy = td.reduce((a, s) => a + (s.price - my) ** 2, 0);
+    r = vx && vy ? cov / Math.sqrt(vx * vy) : null;
+  }
+  return {
+    n: hist.length, perHour, lo, hi,
+    weekendPct: we.length && wd.length ? Math.round((1 - mean(we) / mean(wd)) * 100) : null,
+    spread: mean(hist.map((d) => d.max - d.min)),
+    negHours: hist.reduce((a, d) => a + d.hourly.filter((v) => v != null && v < 0).length, 0),
+    negDays: hist.filter((d) => d.hourly.some((v) => v != null && v < 0)).length,
+    r,
+  };
+}
+
+function miniDay(st) {
+  // 24 bars of the average price per hour, same cheap/normal/expensive colours as the main chart
+  const vals = st.perHour.map((v) => shown(v));
+  const c1 = quantile(st.perHour, 1 / 3), c2 = quantile(st.perHour, 2 / 3);
+  const lvl = (v) => (v <= c1 ? "cheap" : v >= c2 ? "pricey" : "normal");
+  const max = Math.max(...vals, 0), min = Math.min(...vals, 0), H = 86, W = 240, bw = W / 24;
+  const y = (v) => H - ((v - min) / (max - min || 1)) * H;
+  const bars = vals.map((v, h) => {
+    const y0 = y(Math.max(v, 0)), y1 = y(Math.min(v, 0));
+    return `<rect x="${h * bw + 1}" y="${y0}" width="${bw - 2}" height="${Math.max(1, y1 - y0)}" rx="2" fill="var(--${lvl(st.perHour[h])})"
+      data-tip="${h}:00–${h + 1}:00 · Ø ${num(v, 1)} ct/kWh"></rect>`;
+  }).join("");
+  const zero = min < 0 ? `<line x1="0" x2="${W}" y1="${y(0)}" y2="${y(0)}" stroke="var(--text-muted)" stroke-width=".6"/>` : "";
+  return `<div class="mini" id="mini"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${lang === "de" ? "Durchschnittspreis je Stunde" : "Average price per hour"}">${bars}${zero}</svg>
+    <div class="ax"><span>0</span><span>6</span><span>12</span><span>18</span><span>24 ${t("h")}</span></div><div class="tooltip" id="mini-tip"></div></div>`;
+}
+
+function railContent(st) {
+  const de = lang === "de";
+  const hr = (h) => (de ? `${h}–${h + 1} Uhr` : `${h}:00–${h + 1}:00`);
+  const card = (icon, title, body) => `<div class="card info"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${RI[icon]}</svg>${title}</h3>${body}</div>`;
+  const phase = (c, name, text) => `<li><i style="--c:var(--${c})"></i><span><b>${name}</b> ${text}</span></li>`;
+  const live = (deTxt, enTxt) => (st ? `<p>${de ? deTxt : enTxt}</p>` : "");
+
+  const left = [
+    `<div class="rail-title">${de ? "Strom verstehen" : "Understanding power prices"}</div>`,
+    card("steps", de ? "So nutzen Sie die Seite" : "How to use this page", de
+      ? `<ol><li>Oben sehen Sie den <b>aktuellen Preis</b> und die günstigste Stunde.</li>
+         <li>Im Diagramm zeigt <b style="color:var(--cheap)">Blau</b> die günstigsten, <b style="color:var(--pricey)">Rot</b> die teuersten Viertelstunden des Tages.</li>
+         <li>Wählen Sie im <b>Planer</b> Ihr Gerät und den Zeitraum, in dem es laufen darf.</li>
+         <li>Stellen Sie am Gerät die <b>Startzeitvorwahl</b> (Timer) auf die vorgeschlagene Zeit.</li>
+         <li>Bei <b>„Ihr Tarif“</b> tragen Sie die Werte von Ihrer Stromrechnung ein.</li></ol>`
+      : `<ol><li>At the top you see the <b>price right now</b> and the cheapest hour.</li>
+         <li>In the chart, <b style="color:var(--cheap)">blue</b> marks the cheapest and <b style="color:var(--pricey)">red</b> the priciest quarter-hours of the day.</li>
+         <li>In the <b>planner</b>, pick your appliance and the time window it may run in.</li>
+         <li>Set your appliance's <b>delay-start timer</b> to the suggested time.</li>
+         <li>Under <b>your tariff</b>, match fees and fixed price to your bill.</li></ol>`),
+    card("day", de ? "Ein typischer Tag" : "A typical day", (st ? miniDay(st) : "") + (de
+      ? `<ul class="phases">
+          ${phase("normal", "Nachts (0–6 Uhr):", "Es wird wenig Strom gebraucht, der Wind weht weiter. Mittlere Preise, in windigen Nächten günstig.")}
+          ${phase("pricey", "Morgens (6–9 Uhr):", "Haushalte und Firmen starten in den Tag, der Preis steigt.")}
+          ${phase("cheap", "Mittags (10–16 Uhr):", "Solaranlagen liefern sehr viel Strom. Meist die günstigste Zeit, an sonnigen Wochenenden oft sogar unter null.")}
+          ${phase("pricey", "Abends (17–21 Uhr):", "Die Sonne ist weg, viele kochen, waschen und schauen fern. Jetzt laufen Gaskraftwerke, der Strom ist fast immer am teuersten.")}
+        </ul>`
+      : `<ul class="phases">
+          ${phase("normal", "Night (0–6):", "little demand, wind keeps supplying. Mid-level, cheap on windy nights.")}
+          ${phase("pricey", "Morning peak (6–9):", "homes and industry ramp up, prices climb.")}
+          ${phase("cheap", "Solar noon (10–16):", "solar panels flood the grid. Usually the cheapest time, often below zero on sunny weekends.")}
+          ${phase("pricey", "Evening peak (17–21):", "the sun is gone, everyone cooks and watches TV. Gas plants set the price, almost always the priciest time.")}
+        </ul>`) +
+      live(`In den letzten ${st?.n} Tagen war es am günstigsten <b>${st && hr(st.lo)}</b> (Ø ${st && ct(shown(st.perHour[st.lo]))}) und am teuersten <b>${st && hr(st.hi)}</b> (Ø ${st && ct(shown(st.perHour[st.hi]))}).`,
+           `Last ${st?.n} days: cheapest <b>${st && hr(st.lo)}</b> (avg ${st && ct(shown(st.perHour[st.lo]))}), priciest <b>${st && hr(st.hi)}</b> (avg ${st && ct(shown(st.perHour[st.hi]))}).`) +
+      `<p>${de ? "Im Winter fällt der Preis mittags weniger stark, dann kommt es vor allem auf den Wind an. Am teuersten sind dunkle Tage ohne Wind (die „Dunkelflaute“)."
+               : "In winter the midday dip is shallower and wind decides. Calm, dark days (Dunkelflaute) are the most expensive of the year."}</p>`),
+    card("why", de ? "Warum ändert sich der Preis?" : "Why does the price change?", de
+      ? `<p>Jeden Tag um <b>12 Uhr</b> wird an der Strombörse (EPEX Spot) der Strom für den nächsten Tag versteigert, und zwar für <b>jede Viertelstunde einzeln</b>. Gegen 13 Uhr stehen die Preise fest.</p>
+         <p>Zuerst kommen die günstigsten Kraftwerke zum Einsatz: Sonne und Wind (fast kostenlos), danach Kohle und zuletzt Gas. Den Preis für alle bestimmt das <b>teuerste Kraftwerk, das noch gebraucht wird</b> (Merit-Order). Viel Sonne und Wind bedeutet also günstigen Strom.</p>`
+      : `<p>Every day at <b>noon</b>, the EPEX Spot exchange auctions the next day's electricity in <b>15-minute blocks</b>. Around 1 pm the prices are final.</p>
+         <p>Power plants are called in by cost: sun and wind first (almost free), then coal, gas last. The <b>most expensive plant still needed</b> sets the price for everyone (merit order). Plenty of sun and wind means cheap power.</p>`),
+    card("neg", de ? "Negative Preise" : "Negative prices", de
+      ? `<p>Wird mehr Strom erzeugt als gebraucht, bezahlen die Erzeuger sogar dafür, dass jemand ihn abnimmt. Der Börsenpreis liegt dann <b>unter null</b>.</p>
+         ${st ? `<p>In den letzten ${st.n} Tagen: <b>${st.negHours} Stunden</b> an ${st.negDays} Tagen.</p>` : ""}
+         <p>Netzentgelt, Steuern und Umlagen zahlen Sie trotzdem. Ihr Preis bleibt deshalb meist über null, ist dann aber sehr niedrig.</p>`
+      : `<p>When more power is produced than needed, producers pay to get rid of it: the market price falls <b>below zero</b>.</p>
+         ${st ? `<p>In the last ${st.n} days: <b>${st.negHours} hours</b> on ${st.negDays} days.</p>` : ""}
+         <p>You still pay grid fees, taxes and levies, so your final price usually stays positive, just very low.</p>`),
+    card("book", de ? "Wichtige Begriffe" : "Glossary", de
+      ? `<dl class="gloss"><dt>Day-Ahead-Preis</dt><dd>Der Börsenpreis für den nächsten Tag. Er wird am Tag davor festgelegt.</dd>
+         <dt>Endpreis („Ihr Preis“)</dt><dd>Börsenpreis plus Netzentgelt, Steuern, Umlagen und Mehrwertsteuer. Das, was Sie wirklich bezahlen.</dd>
+         <dt>Dynamischer Tarif</dt><dd>Ihr Preis ändert sich mit dem Börsenpreis, jede Viertelstunde.</dd>
+         <dt>Smart Meter</dt><dd>Ein digitaler Stromzähler, der Ihren Verbrauch pro Viertelstunde misst. Ohne ihn gibt es keinen dynamischen Tarif.</dd>
+         <dt>§ 14a EnWG</dt><dd>Wenn Sie Wallbox oder Wärmepumpe beim Netzbetreiber als steuerbar anmelden, zahlen Sie weniger Netzentgelt.</dd></dl>`
+      : `<dl class="gloss"><dt>Day-ahead price</dt><dd>Market price for tomorrow, auctioned the day before.</dd>
+         <dt>Final price</dt><dd>Market price plus grid fees, taxes, levies and VAT. What you actually pay.</dd>
+         <dt>Dynamic tariff</dt><dd>Your price follows the market, quarter-hour by quarter-hour.</dd>
+         <dt>Smart meter</dt><dd>Measures your use per quarter-hour. Required for a dynamic tariff.</dd>
+         <dt>§ 14a EnWG</dt><dd>Register a wallbox or heat pump as controllable and pay reduced grid fees.</dd></dl>`),
+  ];
+
+  // cost per use at the typically cheapest vs. priciest hour, at the user's final price
+  const cLo = st ? endPrice(st.perHour[st.lo]) : null, cHi = st ? endPrice(st.perHour[st.hi]) : null;
+  const useRows = USES.map(([k, kwh]) => `<tr><td>${USE_NAMES[lang][k]}<small>${num(kwh, kwh < 10 ? 1 : 0)} kWh</small></td>
+    ${st ? `<td class="good">${eur(kwh * cLo / 100)}</td><td class="bad">${eur(kwh * cHi / 100)}</td>` : ""}</tr>`).join("");
+  const rTxt = st?.r == null ? "" : st.r < -0.4
+    ? (de ? `<p>Heute gilt: <b>Je mehr Ökostrom im Netz ist, desto günstiger ist der Strom.</b> Wer zur günstigen Zeit Strom nutzt, nutzt also meist auch Ökostrom.</p>`
+          : `<p>Today: <b>the more green power in the grid, the cheaper it is.</b> Using power at cheap times usually means using green power.</p>`)
+    : (de ? `<p>Heute sind die günstigsten Zeiten nicht unbedingt die grünsten. Der Planer zeigt Ihnen deshalb auch die grünste Zeit.</p>`
+          : `<p>Today the cheapest times are not necessarily the greenest. The planner therefore also shows you the greenest time.</p>`);
+
+  const right = [
+    `<div class="rail-title">${de ? "Tipps & Fakten" : "Tips & facts"}</div>`,
+    st ? card("facts", de ? `Die letzten ${st.n} Tage` : `The last ${st.n} days`,
+      `<div class="facts">
+        <div><div class="v">${ct(st.spread / 10, 0)}</div><div class="k">${de ? "Abstand zwischen billigster und teuerster Viertelstunde eines Tages (Ø)" : "average gap between the cheapest and priciest quarter-hour of a day"}</div></div>
+        <div><div class="v">${st.weekendPct != null ? `${st.weekendPct} %` : "–"}</div><div class="k">${de ? "günstiger am Wochenende als unter der Woche" : "cheaper at weekends than on weekdays"}</div></div>
+        <div><div class="v">${hr(st.lo).replace(" Uhr", "")}</div><div class="k">${de ? "im Schnitt die günstigste Stunde" : "cheapest hour on average"}</div></div>
+        <div><div class="v">${st.negHours}</div><div class="k">${de ? "Stunden mit negativem Börsenpreis" : "hours with a negative market price"}</div></div>
+      </div>${rTxt ? `<div style="margin-top:10px">${rTxt}</div>` : ""}`) : "",
+    card("plug", de ? "Wie viel Strom braucht was?" : "What uses how much?",
+      `<table class="use-table"><thead><tr><th>${de ? "Gerät" : "Appliance"}</th>${st ? `<th><span class="pill cheap">${st.lo} ${de ? "Uhr" : "h"}</span></th><th><span class="pill pricey">${st.hi} ${de ? "Uhr" : "h"}</span></th>` : ""}</tr></thead><tbody>${useRows}</tbody></table>
+       <p style="margin-top:10px">${de ? "Ungefähre Werte pro Nutzung, gerechnet mit Ihrem Preis zur günstigsten und zur teuersten Stunde. Bei der Waschmaschine geht es um Cent, beim E-Auto und bei der Wärmepumpe um Euro: <b>Am meisten sparen Sie bei großen Verbrauchern.</b>"
+                                      : "Typical values per use; costs at the average final price of the cheapest and priciest hour. For a washer it's cents, for an EV or heat pump it's euros: <b>big consumers pay off most.</b>"}</p>`),
+    card("tip", de ? "Spartipps" : "Saving tips", de
+      ? `<ul><li>Nutzen Sie die <b>Startzeitvorwahl</b>: Fast jede Wasch- und Spülmaschine kann später starten.</li>
+         <li><b>Eco-Programme</b> dauern länger, brauchen aber viel weniger Strom. Und die Maschine immer voll beladen.</li>
+         <li>Im <b>Homeoffice</b> lieber mittags kochen, backen oder das Wasser im Boiler aufheizen.</li>
+         <li>Mit <b>Balkonkraftwerk</b> oder Solaranlage: Mittags haben Sie eigenen Strom, und der Strom aus dem Netz ist dann auch am günstigsten.</li>
+         <li>Große Wäsche am besten am <b>Samstag- oder Sonntagmittag</b>.</li>
+         <li>Kühlschrank und Router einfach laufen lassen. Verschieben lohnt sich nur bei Geräten, die Sie selbst einschalten.</li></ul>`
+      : `<ul><li>Use the <b>delay-start timer</b>: almost every washer and dishwasher has one.</li>
+         <li><b>Eco programmes</b> run longer but use much less power. Full loads pay off twice.</li>
+         <li><b>Working from home?</b> Cook, bake or heat the hot-water tank at midday.</li>
+         <li>With a <b>balcony solar panel</b> or rooftop PV: at midday your own power is there and market power is cheapest.</li>
+         <li>Use the <b>weekend</b>: big laundry on Saturday or Sunday around noon.</li>
+         <li>Leave the fridge and router alone. Shifting only pays for appliances you start yourself.</li></ul>`),
+    card("tariff", de ? "Lohnt sich ein dynamischer Tarif?" : "Is a dynamic tariff worth it?", de
+      ? `<p>Seit 2025 muss <b>jeder Stromanbieter</b> einen dynamischen Tarif anbieten. Dafür brauchen Sie ein <b>Smart Meter</b>. Der Messstellenbetreiber muss es auf Wunsch einbauen, die Kosten dafür sind gesetzlich begrenzt.</p>
+         <p><b>Eher ja:</b> mit E-Auto, Wärmepumpe oder Heimspeicher, und wenn Sie Ihren Verbrauch verschieben können. <b>Eher nein:</b> wenn Sie wenig Strom brauchen und nichts verschieben können. Dann tragen Sie das Risiko teurer Winterabende, ohne viel zu sparen.</p>
+         <p>Im Planer sehen Sie bei <b>„Gegenüber Festpreis“</b>, ob Sie heute mit einem dynamischen Tarif sparen würden.</p>`
+      : `<p>Since 2025, <b>every supplier</b> in Germany has to offer a dynamic tariff. You need a <b>smart meter</b>; the metering operator must install one on request and its cost is capped by law.</p>
+         <p><b>Likely yes</b> with an EV, heat pump or home battery and some flexibility. <b>Likely no</b> with low, fixed consumption: you'd carry the risk of pricey winter evenings for little gain.</p>
+         <p>In the planner, <b>"vs. fixed tariff"</b> shows whether a dynamic tariff would save you money today.</p>`),
+    card("safe", de ? "Sicherheit & Nachbarn" : "Safety & neighbours", de
+      ? `<ul><li>Die Feuerwehr rät: <b>Trockner und Waschmaschine nur laufen lassen, wenn jemand da ist</b>, also nicht, wenn Sie weg sind oder schlafen. Wählen Sie lieber eine günstige Zeit, in der Sie wach und zu Hause sind.</li>
+         <li>Das Flusensieb im Trockner nach jedem Trocknen sauber machen.</li>
+         <li>In Mietshäusern gilt meist <b>Nachtruhe von 22 bis 6 Uhr</b>. Schleudern um Mitternacht hört das ganze Haus.</li>
+         <li>Ein E-Auto regelmäßig nur an einer Wallbox oder einer geeigneten Steckdose laden, nie über eine Mehrfachsteckdose oder Kabeltrommel.</li></ul>`
+      : `<ul><li>Fire brigades advise <b>not running dryers and washers unattended</b> or overnight. Pick a cheap window when you're home and awake.</li>
+         <li>Clean the dryer's lint filter after every run.</li>
+         <li>In apartment buildings, <b>quiet hours are usually 10 pm–6 am</b>: a midnight spin cycle wakes the whole house.</li>
+         <li>Charge an EV regularly only from a wallbox or a suitable socket, never through a power strip or cable reel.</li></ul>`),
+  ];
+  // balance the two rails: the dynamic-tariff card joins the explanations, negative prices join the facts
+  const [L0, L1, L2, L3, L4, L5] = left, [R0, R1, R2, R3, R4, R5] = right;
+  return { left: [L0, L1, L2, L3, R4, L5].join(""), right: [R0, R1, L4, R2, R3, R5].join("") };
+}
+
+function renderRails() {
+  const st = railStats();
+  const { left, right } = railContent(st);
+  $("rail-left").innerHTML = left;
+  $("rail-right").innerHTML = right;
+  const mini = $("mini");
+  if (!mini) return;
+  const tip = $("mini-tip");
+  mini.onmousemove = (ev) => {
+    const bar = ev.target.closest("rect");
+    if (!bar) { tip.style.display = "none"; return; }
+    tip.textContent = bar.dataset.tip; tip.style.display = "block";
+    const box = mini.getBoundingClientRect();
+    let x = ev.clientX - box.left + 12;
+    if (x + tip.offsetWidth > box.width) x -= tip.offsetWidth + 24;
+    tip.style.left = `${x}px`; tip.style.top = `${ev.clientY - box.top - 36}px`;
+  };
+  mini.onmouseleave = () => { tip.style.display = "none"; };
+}
+
+/* ================= theme & language ================= */
+const ICONS = {
+  moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+};
+const isLight = () => document.documentElement.dataset.theme === "light";
+const syncIcon = () => { $("theme-icon").innerHTML = isLight() ? ICONS.moon : ICONS.sun; };
+$("theme-btn").onclick = () => {
+  document.documentElement.dataset.theme = isLight() ? "dark" : "light";
+  try { localStorage.setItem("theme", document.documentElement.dataset.theme); } catch {}
+  syncIcon(); render();
+};
+const setLang = (l) => { lang = l; try { localStorage.setItem("lang", l); } catch {} render(); };
+$("lang-de").onclick = () => setLang("de");
+$("lang-en").onclick = () => setLang("en");
+syncIcon();
+
+render();
+load();
+// keep "now" current; fetch new data every 15 minutes (tomorrow's prices arrive in the afternoon)
+setInterval(() => { if (S.data) { renderKpis(); drawCharts(); renderHero(); } }, 60000);
+setInterval(load, 15 * 60000);
+</script>
+</body>
+</html>
