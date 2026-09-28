@@ -142,6 +142,7 @@ dl.gloss { margin: 0; font-size: 13px; }
 dl.gloss dt { font-weight: 600; color: var(--text-primary); }
 dl.gloss dd { margin: 0 0 8px; color: var(--text-secondary); }
 dl.gloss dd:last-child { margin-bottom: 0; }
+.info p.links { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12.5px; line-height: 1.7; }
 .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; min-width: 0; }
 .card-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
 .card-head h2 { font-size: 15px; margin: 0; font-weight: 600; }
@@ -177,6 +178,7 @@ dl.gloss dd:last-child { margin-bottom: 0; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
 .legend i.band { width: 18px; height: 5px; border-radius: 3px; }
+.legend i.dash { height: 0; border-radius: 0; background: none; border-top: 2px dashed var(--text-muted); }
 .switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--text-secondary); user-select: none; }
 .switch input { appearance: none; width: 32px; height: 18px; border-radius: 999px; background: var(--surface-3); position: relative; cursor: pointer; margin: 0; transition: background .15s; }
 .switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--text-secondary); transition: transform .15s, background .15s; }
@@ -348,6 +350,24 @@ svg.power .node { fill: var(--spark); opacity: 0; transform-box: fill-box; trans
   .hero-curve .now-ring, .eyebrow .live { animation: none; }
 }
 
+/* tariff choice (first dashboard card) */
+.tp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tp-opt { display: flex; flex-direction: column; gap: 8px; text-align: left; cursor: pointer; padding: 14px 16px; border-radius: 14px;
+  background: var(--surface-2); border: 1.5px solid transparent; color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; }
+.tp-opt:hover { border-color: var(--border); }
+.tp-opt[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.tp-top { display: flex; align-items: center; gap: 10px; }
+.tp-top svg { width: 22px; height: 22px; flex: none; color: var(--accent); }
+.tp-top b { font-size: 15.5px; color: var(--text-primary); }
+.tp-tag { font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--surface-3); color: var(--text-muted); white-space: nowrap; }
+.tp-check { margin-left: auto; width: 20px; height: 20px; flex: none; border-radius: 50%; border: 2px solid var(--border); }
+.tp-opt[aria-pressed="true"] .tp-check { border-color: var(--accent); background: var(--accent)
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E") center / 13px no-repeat; }
+.tp-result { font-weight: 600; color: var(--text-primary); font-size: 13px; }
+.tp-opt[aria-pressed="true"] .tp-result { color: var(--accent); }
+.tariff-pick .hint { margin-top: 12px; }
+@media (max-width: 640px) { .tp-grid { grid-template-columns: minmax(0, 1fr); } }
+
 footer { max-width: 1280px; margin: 0 auto; padding: 0 20px 40px; font-size: 12.5px; color: var(--text-muted); }
 footer p { margin: 0 0 6px; }
 .loading { padding: 80px 0; text-align: center; color: var(--text-muted); }
@@ -418,7 +438,7 @@ footer p { margin: 0 0 6px; }
 <footer>
   <p data-i18n="footerData"></p>
   <p data-i18n="footerNote"></p>
-  <p><span data-i18n="builtBy"></span> <a href="https://vulevu228.github.io" target="_blank" rel="noopener">vulevu228</a> · <a href="https://github.com/vulevu228/StrompreisPlaner" target="_blank" rel="noopener">GitHub</a></p>
+  <p><a href="https://github.com/vulevu228/StrompreisPlaner" target="_blank" rel="noopener" data-i18n="sourceCode"></a></p>
 </footer>
 </div>
 
@@ -436,7 +456,7 @@ const T = {
     chartTitle: "Strompreis pro Viertelstunde", chartSubEnd: "Ihr Preis mit Netzentgelt und Steuern, in ct/kWh", chartSubSpot: "Börsenpreis ohne Nebenkosten, in ct/kWh",
     endPrice: "Ihr Preis", spot: "Börsenpreis", greenToggle: "Ökostrom-Anteil", greenTitle: "Ökostrom-Anteil (Vorhersage)",
     legendRun: "Beste Zeit für Ihr Gerät", legendWindow: "Ihr Zeitraum", nowLine: "jetzt",
-    planner: "Planer", plannerSub: "Wann läuft Ihr Gerät am günstigsten?",
+    planner: "Planer", plannerSub: "Wann läuft Ihr Gerät am günstigsten?", plannerSubFixed: "Wann läuft Ihr Gerät mit dem meisten Ökostrom?",
     ev: "E-Auto", wash: "Wäsche", dish: "Geschirr", dryer: "Trockner", battery: "Speicher", heatpump: "Warmwasser", custom: "Sonstiges", heater: "Heizlüfter",
     energy: "Strombedarf", duration: "Laufzeit", power: "Ladeleistung", canPause: "Darf Pausen machen (z. B. beim Laden)", window: "Zeitraum",
     quickNow: "ab jetzt", quickMorning: "bis morgen 7 Uhr", quickEvening: "bis heute 18 Uhr", quickAll: "ganzer Zeitraum",
@@ -445,12 +465,29 @@ const T = {
     show: "Auswählen", tooShort: "Der Zeitraum ist zu kurz für diese Laufzeit. Bitte wählen Sie einen längeren Zeitraum.", noData: "Für diesen Zeitraum gibt es keine Preise.",
     tariff: "Ihr Tarif", tariffSub: "So wird aus dem Börsenpreis Ihr Preis", surcharge: "Netzentgelt, Steuern und Umlagen", vat: "mit 19 % Mehrwertsteuer",
     fixed: "Ihr Festpreis (zum Vergleich)", tariffHint: "Typische Werte für 2026, geschätzt. Die genauen Beträge finden Sie auf Ihrer Stromrechnung. Den Börsenpreis zahlen Sie nur mit einem dynamischen Tarif und einem Smart Meter. Strom zur grünsten Zeit zu nutzen, lohnt sich aber für alle.",
-    avgToday: "Ø Preis heute", avgTomorrow: "Ø Preis morgen",
+    avgToday: "Ø Preis heute", avgTomorrow: "Ø Preis morgen", avgTodayDyn: "Ø dynamisch heute", avgTomorrowDyn: "Ø dynamisch morgen",
+    tariffType: "Welchen Stromtarif haben Sie?", tariffTypeSub: "Davon hängt ab, was der Planer für Sie ausrechnet.",
+    tFixed: "Festpreis", tDynamic: "Dynamischer Tarif", tFixedTag: "Die meisten Haushalte", tDynamicTag: "Mit Smart Meter",
+    tFixedInfo: "Sie zahlen immer gleich viel pro kWh, zum Beispiel {p} ct. Egal ob mittags oder abends. Günstige Stunden sparen Ihnen also kein Geld. Aber zur richtigen Zeit nutzen Sie mehr Ökostrom.",
+    tDynamicInfo: "Ihr Preis ändert sich alle 15 Minuten mit der Strombörse. Mittags ist Strom oft sehr günstig, abends teuer. Wer seine Geräte zur günstigen Zeit laufen lässt, spart Geld.",
+    tFixedResult: "Der Planer zeigt Ihnen: die grünste Zeit", tDynamicResult: "Der Planer zeigt Ihnen: die günstigste Zeit und Ihre Ersparnis",
+    tariffHow: "Nicht sicher? Steht in Ihrem Vertrag ein fester Arbeitspreis in ct/kWh, haben Sie einen Festpreis. Ein dynamischer Tarif braucht immer einen Smart Meter. Seit 2025 muss jeder Stromanbieter so einen Tarif anbieten.",
+    selected: "ausgewählt",
+    greenHigh: "viel Ökostrom", greenMid: "mittel", greenLow: "wenig Ökostrom", nowGreen: "Ökostrom jetzt",
+    greenestNext: "Grünste Stunde", leastGreenNext: "Wenigster Ökostrom", nowSubFixed: "Dynamisch {dyn} ct · Ihr Festpreis {fix} ct",
+    blockSubFixed: "{when} · dynamisch {dyn} ct", fixedLine: "Ihr Festpreis", fixedLineCmp: "Festpreis zum Vergleich",
+    heroNowDyn: "Jetzt, dynamisch", heatSubFixed: "Preis mit dynamischem Tarif pro Stunde in den letzten {n} Tagen",
+    tariffSubFixed: "Ihr Festpreis und der Vergleich mit einem dynamischen Tarif", fixedYours: "Ihr Festpreis",
+    tomorrowVsDyn: "Morgen, dynamisch",
+    ttYour: "Ihr Preis", ttDynWould: "Mit dynamischem Tarif", ttFixedWould: "Mit Festpreis", ttMarket: "Börsenpreis",
+    bestGreen: "Beste Zeit: am grünsten", costFixed: "Kosten mit Festpreis", greenBox: "Ökostrom-Anteil", greenVsNow: "bei Start jetzt: {n} %",
+    withDynamic: "Mit dynamischem Tarif", fixedNote: "Mit Festpreis kostet Ihr Gerät zu jeder Zeit gleich viel. Darum zeigt der Planer die Zeit mit dem meisten Ökostrom.",
+    chartSubFixed: "So viel würden Sie mit einem dynamischen Tarif zahlen, in ct/kWh", dynPrice: "Dynamischer Preis",
     heatTitle: "Wann ist Strom meistens günstig?", heatSub: "Preis pro Stunde in den letzten {n} Tagen",
     typicalCheap: "Meist günstig: {h}", typicalPricey: "Meist teuer: {h}", heatLow: "günstig", heatHigh: "teuer",
     footerData: "Daten: Bundesnetzagentur | SMARD.de über energy-charts.info (Fraunhofer ISE), CC BY 4.0. Day-Ahead-Preise für Deutschland und Luxemburg, mehrmals am Tag aktualisiert.",
     footerNote: "Alle Angaben ohne Gewähr. Ihre Preise sind Schätzungen und hängen von Ihren Einstellungen ab.",
-    builtBy: "Gebaut von", slotAt: "{t}", greenShare: "Ökostrom {g} %", h: "Uhr",
+    sourceCode: "Quellcode auf GitHub", slotAt: "{t}", greenShare: "Ökostrom {g} %", h: "Uhr",
     euro: "{v} €", ct: "{v} ct", cheaperBy: "{v} günstiger", dearerBy: "{v} teurer", avgWord: "im Schnitt",
     dearerThan: "teurer als an {p} % der letzten {n} Tage",
     heroEyebrow: "Börsenstrompreise für Deutschland, jede Viertelstunde",
@@ -477,7 +514,7 @@ const T = {
     chartTitle: "Electricity price in 15-minute steps", chartSubEnd: "Your price incl. fees, ct/kWh", chartSubSpot: "Market price (day-ahead), ct/kWh",
     endPrice: "Your price", spot: "Market", greenToggle: "Renewable share", greenTitle: "Renewable share (forecast)",
     legendRun: "Best time for your appliance", legendWindow: "Your time window", nowLine: "now",
-    planner: "Planner", plannerSub: "When does your appliance run cheapest?",
+    planner: "Planner", plannerSub: "When does your appliance run cheapest?", plannerSubFixed: "When does your appliance run on the most renewable power?",
     ev: "EV", wash: "Washer", dish: "Dishwasher", dryer: "Dryer", battery: "Battery", heatpump: "Hot water", custom: "Custom", heater: "Heater",
     energy: "Energy", duration: "Run time", power: "Charging power", canPause: "Can pause (e.g. charging)", window: "Time window",
     quickNow: "from now", quickMorning: "until 7 am tomorrow", quickEvening: "until 6 pm today", quickAll: "everything",
@@ -486,12 +523,29 @@ const T = {
     show: "Pick", tooShort: "The time window is too short for this run time. Please widen it.", noData: "No prices in the selected window.",
     tariff: "Your tariff", tariffSub: "From market price to what you pay", surcharge: "Grid fees, taxes & levies", vat: "incl. 19 % VAT",
     fixed: "Your fixed price, to compare", tariffHint: "Typical 2026 values, estimates. The exact amounts are on your electricity bill. You only pay market prices with a dynamic tariff and a smart meter; the greenest time is worth it for everyone.",
-    avgToday: "Avg. price today", avgTomorrow: "Avg. price tomorrow",
+    avgToday: "Avg. price today", avgTomorrow: "Avg. price tomorrow", avgTodayDyn: "Dynamic avg. today", avgTomorrowDyn: "Dynamic avg. tomorrow",
+    tariffType: "Which electricity tariff do you have?", tariffTypeSub: "It changes what the planner works out for you.",
+    tFixed: "Fixed price", tDynamic: "Dynamic tariff", tFixedTag: "Most households", tDynamicTag: "With a smart meter",
+    tFixedInfo: "You pay the same per kWh at all times, for example {p} ct, whether at midday or in the evening. Cheap hours don't save you money, but at the right time you use more renewable power.",
+    tDynamicInfo: "Your price changes every 15 minutes with the power exchange. Midday is often very cheap, evenings expensive. Running your appliances at cheap times saves money.",
+    tFixedResult: "The planner shows you: the greenest time", tDynamicResult: "The planner shows you: the cheapest time and your savings",
+    tariffHow: "Not sure? If your contract states a fixed energy price in ct/kWh, you have a fixed price. A dynamic tariff always needs a smart meter. Since 2025 every German supplier must offer one.",
+    selected: "selected",
+    greenHigh: "lots of green", greenMid: "medium", greenLow: "little green", nowGreen: "Renewables now",
+    greenestNext: "Greenest hour", leastGreenNext: "Least green hour", nowSubFixed: "Dynamic {dyn} ct · your fixed price {fix} ct",
+    blockSubFixed: "{when} · dynamic {dyn} ct", fixedLine: "Your fixed price", fixedLineCmp: "Fixed price, to compare",
+    heroNowDyn: "Now, dynamic", heatSubFixed: "Dynamic-tariff price per hour, last {n} days",
+    tariffSubFixed: "Your fixed price and the comparison with a dynamic tariff", fixedYours: "Your fixed price",
+    tomorrowVsDyn: "Tomorrow, dynamic",
+    ttYour: "Your price", ttDynWould: "With a dynamic tariff", ttFixedWould: "At your fixed price", ttMarket: "Market price",
+    bestGreen: "Best time: greenest", costFixed: "Cost at your fixed price", greenBox: "Renewable share", greenVsNow: "if started now: {n} %",
+    withDynamic: "With a dynamic tariff", fixedNote: "On a fixed price your appliance costs the same at any time, so the planner shows the time with the most renewable power.",
+    chartSubFixed: "What you'd pay with a dynamic tariff, ct/kWh", dynPrice: "Dynamic price",
     heatTitle: "When is electricity usually cheap?", heatSub: "Market price per hour, last {n} days",
     typicalCheap: "Usually cheap: {h}", typicalPricey: "Usually expensive: {h}", heatLow: "cheap", heatHigh: "expensive",
     footerData: "Data: Bundesnetzagentur | SMARD.de via energy-charts.info (Fraunhofer ISE), CC BY 4.0. Day-ahead prices for the DE-LU bidding zone, updated several times a day.",
     footerNote: "No guarantee. Your prices are estimates based on your settings.",
-    builtBy: "Built by", slotAt: "{t}", greenShare: "Renewables {g} %", h: "",
+    sourceCode: "Source code on GitHub", slotAt: "{t}", greenShare: "Renewables {g} %", h: "",
     euro: "€{v}", ct: "{v} ct", cheaperBy: "{v} cheaper", dearerBy: "{v} more", avgWord: "avg.",
     dearerThan: "more expensive than {p} % of the last {n} days",
     heroEyebrow: "Market electricity prices for Germany, every quarter-hour",
@@ -536,15 +590,16 @@ const APPLIANCES = {
 };
 
 /* ================= state ================= */
-const DEFAULTS = { surcharge: 18, vat: true, fixed: 32, mode: "end", day: "both", green: true, appliance: "ev" };
+// tariff: most households have a fixed price, so that's the default; "dynamic" pays the market price + fees
+const DEFAULTS = { surcharge: 18, vat: true, fixed: 32, tariff: "fixed", mode: "end", day: "both", green: true, appliance: "ev" };
 const saved = (() => { try { return JSON.parse(localStorage.getItem("settings") || "{}"); } catch { return {}; } })();
 const S = { ...DEFAULTS, ...saved, data: null, slots: [], plan: {}, win: [0, 0] };
 for (const k of Object.keys(APPLIANCES)) S.plan[k] = { ...APPLIANCES[k], ...(saved.plan?.[k] || {}) };
 const persist = () => {
   try {
-    const { surcharge, vat, fixed, mode, day, green, appliance } = S;
+    const { surcharge, vat, fixed, tariff, mode, day, green, appliance } = S;
     const plan = Object.fromEntries(Object.entries(S.plan).map(([k, p]) => [k, { energy: p.energy, hours: p.hours, power: p.power, pause: p.pause }]));
-    localStorage.setItem("settings", JSON.stringify({ surcharge, vat, fixed, mode, day, green, appliance, plan }));
+    localStorage.setItem("settings", JSON.stringify({ surcharge, vat, fixed, tariff, mode, day, green, appliance, plan }));
   } catch {}
 };
 const charts = {};
@@ -566,10 +621,24 @@ const berlinParts = (ts) => {
   return { date: `${p.year}-${p.month}-${p.day}`, hour: +p.hour, minute: +p.minute };
 };
 const dayWord = (ts) => {
-  const d = berlinParts(ts).date, today = berlinParts(Date.now() / 1000).date;
-  return d === today ? t("today") : t("tomorrow");
+  const d = berlinParts(ts).date, now = Date.now() / 1000;
+  if (d === berlinParts(now).date) return t("today");
+  if (d === berlinParts(now + 86400).date) return t("tomorrow");
+  return fmtDay(ts, { weekday: "long" });  // e.g. the end of tomorrow's window lands on the day after
+};
+// run time as people say it: 0.5 -> "30 Min.", 1.25 -> "1 Std. 15 Min." (EN: "30 min", "1 h 15 min")
+const fmtDuration = (hours) => {
+  const total = Math.round(hours * 60), h = Math.floor(total / 60), m = total % 60;
+  const [hu, mu] = lang === "de" ? ["Std.", "Min."] : ["h", "min"];
+  return [h ? `${h} ${hu}` : "", m ? `${m} ${mu}` : ""].filter(Boolean).join(" ") || `0 ${mu}`;
 };
 const whenLabel = (ts) => (lang === "de" ? `${dayWord(ts)}, ${fmtTime(ts)} Uhr` : `${dayWord(ts)} ${fmtTime(ts)}`);
+// an end time exactly at midnight belongs to the day that ends: "morgen, 24:00 Uhr" instead of "Mittwoch, 00:00 Uhr"
+const endLabel = (ts) => {
+  if (fmtTime(ts) !== "00:00") return whenLabel(ts);
+  const prev = ts - 60;
+  return lang === "de" ? `${dayWord(prev)}, 24:00 Uhr` : `${dayWord(prev)} 24:00`;
+};
 /* price shown to the user, ct/kWh: market price, or market + fees (+ VAT) */
 const endPrice = (eurMwh) => (eurMwh / 10 + S.surcharge) * (S.vat ? 1.19 : 1);
 const shown = (eurMwh) => (S.mode === "spot" ? eurMwh / 10 : endPrice(eurMwh));
@@ -594,9 +663,15 @@ async function load() {
     (byDay[s.day] ??= []).push(price);
     return s;
   });
+  // green levels the same way: the day's greenest third / least green third of the forecast
+  const greenByDay = {};
+  for (const s of S.slots) if (s.green != null) (greenByDay[s.day] ??= []).push(s.green);
   for (const s of S.slots) {
     const ps = byDay[s.day];
     s.level = s.price <= quantile(ps, 1 / 3) ? "cheap" : s.price >= quantile(ps, 2 / 3) ? "pricey" : "normal";
+    const gs = greenByDay[s.day];
+    s.glevel = s.green == null || !gs ? null
+      : s.green >= quantile(gs, 2 / 3) ? "greenHigh" : s.green <= quantile(gs, 1 / 3) ? "greenLow" : "greenMid";
   }
   render();
 }
@@ -645,7 +720,7 @@ function planNow(p, from, to) {
   if (from + n - 1 > to) return null;
   const chosen = Array.from({ length: n }, (_, k) => from + k);
   const per = p.pause ? chosen.map((_, k) => Math.min(p.power * 0.25, p.energy - k * p.power * 0.25)) : chosen.map(() => p.energy / n);
-  return { cost: chosen.reduce((s, i, k) => s + endPrice(S.slots[i].price) / 100 * per[k], 0) };
+  return { slots: chosen, cost: chosen.reduce((s, i, k) => s + endPrice(S.slots[i].price) / 100 * per[k], 0) };
 }
 
 /* ================= rendering ================= */
@@ -659,6 +734,7 @@ function render() {
   renderHero();
   renderStatus();
   $("app").innerHTML = `
+    <section class="card tariff-pick" id="tariff-pick"></section>
     <section class="kpis" id="kpis"></section>
     <section class="grid-main">
       <div class="col">
@@ -669,7 +745,7 @@ function render() {
           <div class="seg" id="day-seg">${["today", "tomorrow", "both"].map((d) =>
             `<button data-day="${d}" aria-pressed="${S.day === d}" ${d === "tomorrow" && !S.data.tomorrow_available ? "disabled" : ""}>${t(d)[0].toUpperCase() + t(d).slice(1)}</button>`).join("")}</div>
           <div class="seg" id="mode-seg">
-            <button data-mode="end" aria-pressed="${S.mode === "end"}">${t("endPrice")}</button><button data-mode="spot" aria-pressed="${S.mode === "spot"}">${t("spot")}</button>
+            <button data-mode="end" aria-pressed="${S.mode === "end"}">${t(S.tariff === "fixed" ? "dynPrice" : "endPrice")}</button><button data-mode="spot" aria-pressed="${S.mode === "spot"}">${t("spot")}</button>
           </div>
           <label class="switch"><input type="checkbox" id="green-toggle" ${S.green ? "checked" : ""}>${t("greenToggle")}</label>
         </div>
@@ -680,6 +756,7 @@ function render() {
           <span><i style="--c:var(--pricey)"></i>${t("pricey")}</span>
           <span><i class="band" style="--c:var(--text-primary)"></i>${t("legendRun")}</span>
           <span><i style="--c:var(--window);outline:1px solid var(--border)"></i>${t("legendWindow")}</span>
+          ${S.mode === "end" ? `<span><i class="band dash"></i>${t(S.tariff === "fixed" ? "fixedLine" : "fixedLineCmp")}</span>` : ""}
           ${S.green ? `<span><i style="--c:var(--green)"></i>${t("greenTitle")}</span>` : ""}
         </div>
       </div>
@@ -697,6 +774,7 @@ function render() {
   $("green-toggle").onchange = (e) => { S.green = e.target.checked; persist(); render(); };
   if (S.day === "tomorrow" && !S.data.tomorrow_available) S.day = "today";
 
+  renderTariffPick();
   renderKpis();
   renderPlanner();
   renderTariff();
@@ -721,14 +799,15 @@ function visibleRange() {
 function renderKpis() {
   const ni = nowIndex();
   const today = berlinParts(nowTs()).date;
-  const hourBlocks = (daySel) => {
-    // hourly averages of the remaining (future) part of a day
+  const hourBlocks = (daySel, key = "price") => {
+    // hourly averages of the remaining (future) part of a day; an hour counts only with all 4 values
     const out = {};
-    S.slots.forEach((s) => { if (daySel(s) && s.ts + 900 > nowTs()) { const k = s.ts - (s.ts % 3600); (out[k] ??= []).push(s.price); } });
+    S.slots.forEach((s) => { if (daySel(s) && s.ts + 900 > nowTs() && s[key] != null) { const k = s.ts - (s.ts % 3600); (out[k] ??= []).push(s[key]); } });
     return Object.entries(out).filter(([, v]) => v.length === 4).map(([k, v]) => [+k, v.reduce((a, b) => a + b) / 4]);
   };
   const scope = S.data.tomorrow_available ? () => true : (s) => s.day === today;
   const blocks = hourBlocks(scope);
+  const fixedMode = S.tariff === "fixed" && S.slots.some((s) => s.green != null);
   const cheapest = blocks.reduce((a, b) => (b[1] < a[1] ? b : a), blocks[0] || [0, 0]);
   const priciest = blocks.reduce((a, b) => (b[1] > a[1] ? b : a), blocks[0] || [0, 0]);
   const cur = ni >= 0 ? S.slots[ni] : null;
@@ -741,11 +820,30 @@ function renderKpis() {
     const pct = Math.round(hist.filter((m) => m > mean).length / hist.length * 100);
     const cheapDay = pct >= 50, shownPct = cheapDay ? pct : 100 - pct;
     const level = pct >= 67 ? "cheap" : pct <= 33 ? "pricey" : "normal";
-    vs = `<div class="k">${t("tomorrowVs")} <span class="pill ${level}">${t(level)}</span></div>
+    vs = `<div class="k">${t(fixedMode ? "tomorrowVsDyn" : "tomorrowVs")} <span class="pill ${level}">${t(level)}</span></div>
       <div class="v">${num(shown(mean), 1)} <small>ct/kWh ${t("avgWord")}</small></div>
       <div class="s">${t(cheapDay ? "cheaperThan" : "dearerThan", { p: shownPct, n: hist.length })}</div>`;
   }
   const hourLabel = (ts) => `${dayWord(ts)} ${fmtTime(ts)}–${fmtTime(ts + 3600)}`;
+  if (fixedMode) {
+    // fixed price: every hour costs the same, so the tiles are about green power; dynamic prices only as a note
+    const gBlocks = hourBlocks(scope, "green");
+    const priceAt = Object.fromEntries(blocks);
+    const greenest = gBlocks.reduce((a, b) => (b[1] > a[1] ? b : a), gBlocks[0] || [0, 0]);
+    const least = gBlocks.reduce((a, b) => (b[1] < a[1] ? b : a), gBlocks[0] || [0, 0]);
+    const blockSub = (b) => gBlocks.length ? t("blockSubFixed", { when: hourLabel(b[0]), dyn: priceAt[b[0]] != null ? num(endPrice(priceAt[b[0]]), 1) : "–" }) : "";
+    const pillG = (lv) => `<span class="pill ${lv === "greenHigh" ? "green" : lv === "greenLow" ? "pricey" : "normal"}">${t(lv)}</span>`;
+    $("kpis").innerHTML = `
+      <div class="card kpi"><div class="k">${t("nowGreen")} ${cur?.glevel ? pillG(cur.glevel) : ""}</div>
+        <div class="v">${cur?.green != null ? Math.round(cur.green) : "–"} <small>%</small></div>
+        <div class="s">${cur ? t("nowSubFixed", { dyn: num(endPrice(cur.price), 1), fix: num(S.fixed, 0) }) : ""}</div></div>
+      <div class="card kpi"><div class="k">${t("greenestNext")} ${pillG("greenHigh")}</div>
+        <div class="v">${gBlocks.length ? Math.round(greenest[1]) : "–"} <small>%</small></div><div class="s">${blockSub(greenest)}</div></div>
+      <div class="card kpi"><div class="k">${t("leastGreenNext")} ${pillG("greenLow")}</div>
+        <div class="v">${gBlocks.length ? Math.round(least[1]) : "–"} <small>%</small></div><div class="s">${blockSub(least)}</div></div>
+      <div class="card kpi">${vs}</div>`;
+    return;
+  }
   $("kpis").innerHTML = `
     <div class="card kpi"><div class="k">${t("now")} ${cur ? `<span class="pill ${cur.level}">${t(cur.level)}</span>` : ""}</div>
       <div class="v">${cur ? num(shown(cur.price), 1) : "–"} <small>ct/kWh</small></div>
@@ -784,10 +882,10 @@ function renderPlanner() {
   const hoursField = p.pause
     ? `<div class="field"><div class="field-top"><span>${t("power")}</span><b id="pw-v">${num(p.power, 1)} kW</b></div>
          <input type="range" id="pw" min="1" max="22" step="0.5" value="${p.power}"></div>`
-    : `<div class="field"><div class="field-top"><span>${t("duration")}</span><b id="hr-v">${num(p.hours, 2).replace(/[.,]00$/, "")} h</b></div>
+    : `<div class="field"><div class="field-top"><span>${t("duration")}</span><b id="hr-v">${fmtDuration(p.hours)}</b></div>
          <input type="range" id="hr" min="0.25" max="8" step="0.25" value="${p.hours}"></div>`;
   $("planner").innerHTML = `
-    <div class="card-head"><div><h2>${t("planner")}</h2><div class="sub">${t("plannerSub")}</div></div></div>
+    <div class="card-head"><div><h2>${t("planner")}</h2><div class="sub">${t(S.tariff === "fixed" ? "plannerSubFixed" : "plannerSub")}</div></div></div>
     <div class="appliances">${Object.keys(APPLIANCES).map((k) => `<button class="appl" data-k="${k}" aria-pressed="${k === key}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>${t(k)}</button>`).join("")}</div>
     <div class="field"><div class="field-top"><span>${t("energy")}</span><b id="en-v">${num(p.energy, p.energy < 10 ? 1 : 0)} kWh</b></div>
@@ -807,7 +905,7 @@ function renderPlanner() {
   const bind = (id, fn) => { const el = $(id); if (el) el.oninput = (e) => { fn(+e.target.value); persist(); updatePlan(); }; };
   bind("en", (v) => { p.energy = v; $("en-v").textContent = `${num(v, v < 10 ? 1 : 0)} kWh`; });
   bind("pw", (v) => { p.power = v; $("pw-v").textContent = `${num(v, 1)} kW`; });
-  bind("hr", (v) => { p.hours = v; $("hr-v").textContent = `${num(v, 2).replace(/[.,]00$/, "")} h`; });
+  bind("hr", (v) => { p.hours = v; $("hr-v").textContent = fmtDuration(v); });
   if ($("pause")) $("pause").onchange = (e) => { p.pause = e.target.checked; if (p.pause && !p.power) p.power = 3; persist(); renderPlanner(); };
   const w0 = $("w0"), w1 = $("w1");
   w0.oninput = () => { if (+w0.value > +w1.value) w0.value = w1.value; S.win[0] = +w0.value; updatePlan(); };
@@ -828,12 +926,36 @@ function updatePlan() {
   const span = Math.max(1, last - first);
   $("win-fill").style.left = `calc(8px + ${(a - first) / span} * (100% - 16px))`;
   $("win-fill").style.width = `calc(${(b - a) / span} * (100% - 16px))`;
-  $("win-v").textContent = `${whenLabel(S.slots[a].ts)} → ${whenLabel(S.slots[b].ts + 900)}`;
+  $("win-v").textContent = `${whenLabel(S.slots[a].ts)} → ${endLabel(S.slots[b].ts + 900)}`;
 
   const best = plan(p, a, b);
   S.best = best;
+  const hasGreen = S.slots.some((s) => s.green != null);
   if (!best) {
     $("result").innerHTML = `<div class="result"><p class="warn">${t(b < a ? "noData" : "tooShort")}</p></div>`;
+  } else if (S.tariff === "fixed" && hasGreen) {
+    // fixed price: every start costs the same, so the useful answer is the greenest time;
+    // the cheapest plan is still shown as what a dynamic tariff would cost
+    const green = plan(p, a, b, "green");
+    S.best = green;
+    const now = planNow(p, first, last);
+    const avgGreen = (r) => Math.round(r.slots.reduce((s, i) => s + (S.slots[i].green ?? 0), 0) / r.slots.length);
+    const fixedCost = p.energy * S.fixed / 100;
+    const pieces = green.slots.reduce((n, i, k) => n + (k === 0 || i !== green.slots[k - 1] + 1 ? 1 : 0), 0);
+    $("result").innerHTML = `<div class="result">
+      <div class="when">${t("bestGreen")}</div>
+      <div class="big">${whenLabel(green.start)}</div>
+      <div class="fin">${p.pause && pieces > 1 ? t("pieces", { n: pieces, t: endLabel(green.end) }) : t("finished", { t: endLabel(green.end) })}</div>
+      <div class="compare">
+        <div><div class="k">${t("costFixed")} (${ct(S.fixed, 0)})</div><div class="v">${eur(fixedCost)}</div></div>
+        <div class="good"><div class="k">${t("greenBox")}</div><div class="v">${avgGreen(green)} %</div>
+          <div class="k">${t("greenVsNow", { n: now ? avgGreen(now) : "–" })}</div></div>
+        <div><div class="k">${t("withDynamic")}</div><div class="v">${eur(best.cost)}</div></div>
+        <div class="${fixedCost >= best.cost ? "good" : "bad"}"><div class="k">${t("vsFixed")}</div>
+          <div class="v">${t(fixedCost >= best.cost ? "cheaperBy" : "dearerBy", { v: eur(Math.abs(fixedCost - best.cost)) })}</div></div>
+      </div>
+      <p class="hint">${t("fixedNote")}</p>
+    </div>`;
   } else {
     const now = planNow(p, first, last);
     const green = plan(p, a, b, "green");
@@ -844,7 +966,7 @@ function updatePlan() {
     $("result").innerHTML = `<div class="result">
       <div class="when">${p.pause ? t("bestSlots") : t("bestStart")}</div>
       <div class="big">${whenLabel(best.start)}</div>
-      <div class="fin">${p.pause && pieces > 1 ? t("pieces", { n: pieces, t: whenLabel(best.end) }) : t("finished", { t: whenLabel(best.end) })}</div>
+      <div class="fin">${p.pause && pieces > 1 ? t("pieces", { n: pieces, t: endLabel(best.end) }) : t("finished", { t: endLabel(best.end) })}</div>
       <div class="compare">
         <div><div class="k">${t("cost")}</div><div class="v">${eur(best.cost)}</div></div>
         <div><div class="k">${t("startNow")}</div><div class="v">${now ? eur(now.cost) : "–"}</div></div>
@@ -925,7 +1047,10 @@ function drawCharts() {
   charts.price = new Chart($("price-chart"), {
     type: "bar",
     data: { labels, datasets: [{ data: vis.map((s) => shown(s.price)), backgroundColor: vis.map((s) => color[s.level]),
-      borderRadius: 2, borderSkipped: false, categoryPercentage: 1, barPercentage: .78 }] },
+      borderRadius: 2, borderSkipped: false, categoryPercentage: 1, barPercentage: .78, order: 2 },
+      // the fixed price as a dashed line: bars below it are hours where a dynamic tariff is cheaper
+      ...(S.mode === "end" ? [{ type: "line", data: vis.map(() => S.fixed), borderColor: muted, borderWidth: 1.5, borderDash: [6, 4],
+        pointRadius: 0, pointHoverRadius: 0, fill: false, order: 1 }] : [])] },
     options: {
       ...common,
       plugins: {
@@ -939,7 +1064,7 @@ function drawCharts() {
     },
     plugins: [overlay],
   });
-  $("chart-sub").textContent = S.mode === "spot" ? t("chartSubSpot") : t("chartSubEnd");
+  $("chart-sub").textContent = S.mode === "spot" ? t("chartSubSpot") : S.tariff === "fixed" ? t("chartSubFixed") : t("chartSubEnd");
 
   charts.green?.destroy();
   if (S.green && $("green-chart")) {
@@ -963,27 +1088,65 @@ function priceTooltip({ chart, tooltip }) {
   if (!tooltip.opacity || !tooltip.dataPoints?.length) { tip.style.display = "none"; return; }
   const [from] = visibleRange();
   const s = S.slots[from + tooltip.dataPoints[0].dataIndex];
-  tip.innerHTML = `<b>${fmtDay(s.ts, { weekday: "short" })} ${fmtTime(s.ts)}–${fmtTime(s.ts + 900)}</b><br>
-    ${num(endPrice(s.price), 1)} ct/kWh <span class="pill ${s.level}">${t(s.level)}</span>
-    <small>${t("spot")} ${num(s.price / 10, 2)} ct${s.green != null ? " · " + t("greenShare", { g: Math.round(s.green) }) : ""}</small>`;
+  // the headline number is what this visitor actually pays (fixed price or dynamic end price);
+  // the other tariff, the market price and the green share follow as context
+  const fixed = S.tariff === "fixed", dyn = endPrice(s.price);
+  const mine = fixed ? S.fixed : dyn;
+  const pill = fixed
+    ? (s.glevel ? `<span class="pill ${s.glevel === "greenHigh" ? "green" : s.glevel === "greenLow" ? "pricey" : "normal"}">${t(s.glevel)}</span>` : "")
+    : `<span class="pill ${s.level}">${t(s.level)}</span>`;
+  const green = s.green != null ? " · " + t("greenShare", { g: Math.round(s.green) }) : "";
+  const head = `<b>${fmtDay(s.ts, { weekday: "short" })} ${fmtTime(s.ts)}–${fmtTime(s.ts + 900)}</b><br>`;
+  tip.innerHTML = S.mode === "spot"
+    ? `${head}${t("ttMarket")}: ${num(s.price / 10, 2)} ct/kWh <span class="pill ${s.level}">${t(s.level)}</span>
+       <small>${t("ttYour")} (${t(fixed ? "tFixed" : "tDynamic")}): ${num(mine, 1)} ct${green}</small>`
+    : `${head}${t("ttYour")} (${t(fixed ? "tFixed" : "tDynamic")}): <b>${num(mine, 1)} ct/kWh</b> ${pill}
+       <small>${t(fixed ? "ttDynWould" : "ttFixedWould")}: ${num(fixed ? dyn : S.fixed, 1)} ct · ${t("ttMarket")} ${num(s.price / 10, 2)} ct${green}</small>`;
   tip.style.display = "block";
   let x = tooltip.caretX + 12;
   if (x + tip.offsetWidth > chart.width) x = tooltip.caretX - tip.offsetWidth - 12;
   tip.style.left = `${x}px`; tip.style.top = `${Math.max(0, tooltip.caretY - 40)}px`;
 }
 
+/* ---------- tariff choice: first card on the dashboard, it decides what the planner optimises ---------- */
+const TARIFF_ICON = {
+  fixed: '<path d="M3 12h18"/><path d="M3 6h18M3 18h18" opacity=".35"/>',
+  dynamic: '<path d="M3 15c2 0 2.5-6 4.5-6s2.5 9 4.5 9 2.5-12 4.5-12 2.5 6 4.5 6"/>',
+};
+function renderTariffPick() {
+  const opt = (k, label, tag, info, result) => `
+    <button class="tp-opt" data-t="${k}" aria-pressed="${S.tariff === k}">
+      <span class="tp-top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${TARIFF_ICON[k]}</svg>
+        <b>${t(label)}</b><span class="tp-tag">${t(tag)}</span><span class="tp-check" aria-hidden="true"></span></span>
+      <span class="tp-info">${t(info, { p: num(S.fixed, 0) })}</span>
+      <span class="tp-result">${t(result)}</span>
+    </button>`;
+  $("tariff-pick").innerHTML = `
+    <div class="card-head"><div><h2>${t("tariffType")}</h2><div class="sub">${t("tariffTypeSub")}</div></div></div>
+    <div class="tp-grid" role="group" aria-label="${t("tariffType")}">
+      ${opt("fixed", "tFixed", "tFixedTag", "tFixedInfo", "tFixedResult")}
+      ${opt("dynamic", "tDynamic", "tDynamicTag", "tDynamicInfo", "tDynamicResult")}
+    </div>
+    <p class="hint">${t("tariffHow")}</p>`;
+  // switching changes labels in several cards, so redraw everything
+  $("tariff-pick").querySelectorAll(".tp-opt").forEach((b) => b.onclick = () => {
+    if (S.tariff === b.dataset.t) return;
+    S.tariff = b.dataset.t; persist(); render();
+  });
+}
+
 /* ---------- tariff ---------- */
 function renderTariff() {
   $("tariff").innerHTML = `
-    <div class="card-head"><div><h2>${t("tariff")}</h2><div class="sub">${t("tariffSub")}</div></div></div>
+    <div class="card-head"><div><h2>${t("tariff")}</h2><div class="sub">${t(S.tariff === "fixed" ? "tariffSubFixed" : "tariffSub")}</div></div></div>
     <div class="field"><div class="field-top"><span>${t("surcharge")}</span><b id="sur-v">${ct(S.surcharge)}/kWh</b></div>
       <input type="range" id="sur" min="0" max="35" step="0.5" value="${S.surcharge}"></div>
     <div class="field"><label class="switch"><input type="checkbox" id="vat" ${S.vat ? "checked" : ""}>${t("vat")}</label></div>
-    <div class="field"><div class="field-top"><span>${t("fixed")}</span><b id="fix-v">${ct(S.fixed, 0)}/kWh</b></div>
+    <div class="field"><div class="field-top"><span>${t(S.tariff === "fixed" ? "fixedYours" : "fixed")}</span><b id="fix-v">${ct(S.fixed, 0)}/kWh</b></div>
       <input type="range" id="fix" min="20" max="50" step="1" value="${S.fixed}"></div>
     <div class="tariff-sum" id="tariff-sum"></div>
     <p class="hint">${t("tariffHint")}</p>`;
-  const refresh = () => { persist(); renderTariffSum(); renderKpis(); updatePlan(); renderRails(); };
+  const refresh = () => { persist(); renderTariffSum(); renderKpis(); updatePlan(); renderRails(); renderTariffPick(); };
   $("sur").oninput = (e) => { S.surcharge = +e.target.value; $("sur-v").textContent = `${ct(S.surcharge)}/kWh`; refresh(); };
   $("vat").onchange = (e) => { S.vat = e.target.checked; refresh(); };
   $("fix").oninput = (e) => { S.fixed = +e.target.value; $("fix-v").textContent = `${ct(S.fixed, 0)}/kWh`; refresh(); };
@@ -993,8 +1156,8 @@ function renderTariffSum() {
   const today = berlinParts(nowTs()).date;
   const avg = (sel) => { const xs = S.slots.filter(sel); return xs.length ? xs.reduce((a, s) => a + endPrice(s.price), 0) / xs.length : null; };
   const a = avg((s) => s.day === today), b = S.data.tomorrow_available ? avg((s) => s.day !== today) : null;
-  $("tariff-sum").innerHTML = `<div><div class="k">${t("avgToday")}</div><div class="v">${a != null ? ct(a) : "–"}</div></div>
-    <div><div class="k">${t("avgTomorrow")}</div><div class="v">${b != null ? ct(b) : "–"}</div></div>`;
+  $("tariff-sum").innerHTML = `<div><div class="k">${t(S.tariff === "fixed" ? "avgTodayDyn" : "avgToday")}</div><div class="v">${a != null ? ct(a) : "–"}</div></div>
+    <div><div class="k">${t(S.tariff === "fixed" ? "avgTomorrowDyn" : "avgTomorrow")}</div><div class="v">${b != null ? ct(b) : "–"}</div></div>`;
 }
 
 /* ---------- heatmap: typical cheap hours ---------- */
@@ -1011,12 +1174,12 @@ function renderHeatmap() {
   const c = block(1), e = block(-1);
   const dateLabel = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString(locale(), { weekday: "short", day: "numeric", month: "numeric", timeZone: "UTC" });
   $("heat-card").innerHTML = `
-    <div class="card-head"><div><h2>${t("heatTitle")}</h2><div class="sub">${t("heatSub", { n: hist.length })}</div></div></div>
+    <div class="card-head"><div><h2>${t("heatTitle")}</h2><div class="sub">${t(S.tariff === "fixed" && S.mode !== "spot" ? "heatSubFixed" : "heatSub", { n: hist.length })}</div></div></div>
     <div class="typical"><span class="pill cheap">${t("typicalCheap", { h: hl(c) })}</span><span class="pill pricey">${t("typicalPricey", { h: hl(e) })}</span></div>
     <div class="heat" id="heat">
       <div></div>${Array.from({ length: 24 }, (_, h) => `<div class="hl">${h % 3 === 0 ? h : ""}</div>`).join("")}
       ${hist.map((d) => `<div class="rl">${dateLabel(d.date)}</div>${d.hourly.map((v, h) =>
-        `<div class="cell" style="--c:${v == null ? "var(--surface-3)" : colorOf(v)}" data-tip="${esc(dateLabel(d.date))} ${h}:00 · ${v == null ? "–" : num(S.mode === "spot" ? v / 10 : endPrice(v), 1) + " ct/kWh"}"></div>`).join("")}`).join("")}
+        `<div class="cell" style="--c:${v == null ? "var(--surface-3)" : colorOf(v)}" data-tip="${esc(dateLabel(d.date))} ${h}:00 · ${v == null ? "–" : (S.mode === "spot" ? t("ttMarket") : S.tariff === "fixed" ? t("ttDynWould") : t("ttYour")) + ": " + num(S.mode === "spot" ? v / 10 : endPrice(v), 1) + " ct/kWh"}"></div>`).join("")}`).join("")}
       <div class="tooltip" id="heat-tip"></div>
     </div>
     <div class="heat-legend">${t("heatLow")}<span class="ramp">${ramp.map((c) => `<i style="--c:${c}"></i>`).join("")}</span>${t("heatHigh")}</div>`;
@@ -1274,7 +1437,7 @@ function renderHero() {
   const hMin = full.length ? full.reduce((a, b) => (sum(b[1]) < sum(a[1]) ? b : a)) : null;
   const hl = (h) => (lang === "de" ? `${h}–${+h + 1} Uhr` : `${h}:00–${+h + 1}:00`);
   $("hero-live").innerHTML = `
-    ${cur ? `<span class="chip-live">${t("heroNow")} <b>${num(shown(cur.price), 1)} ct/kWh</b> <span class="pill ${cur.level}">${t(cur.level)}</span></span>` : ""}
+    ${cur ? `<span class="chip-live">${t(S.tariff === "fixed" && S.mode !== "spot" ? "heroNowDyn" : "heroNow")} <b>${num(shown(cur.price), 1)} ct/kWh</b> <span class="pill ${cur.level}">${t(cur.level)}</span></span>` : ""}
     ${hMin ? `<span class="chip-live">${t("heroCheapest")} <b>${hl(hMin[0])}</b></span>` : ""}
     ${cur?.green != null ? `<span class="chip-live">${t("heroGreen")} <b>${Math.round(cur.green)} %</b></span>` : ""}`;
 }
@@ -1517,18 +1680,54 @@ function railContent(st) {
          <dt>Endpreis („Ihr Preis“)</dt><dd>Börsenpreis plus Netzentgelt, Steuern, Umlagen und Mehrwertsteuer. Das, was Sie wirklich bezahlen.</dd>
          <dt>Dynamischer Tarif</dt><dd>Ihr Preis ändert sich mit dem Börsenpreis, jede Viertelstunde.</dd>
          <dt>Smart Meter</dt><dd>Ein digitaler Stromzähler, der Ihren Verbrauch pro Viertelstunde misst. Ohne ihn gibt es keinen dynamischen Tarif.</dd>
-         <dt>§ 14a EnWG</dt><dd>Wenn Sie Wallbox oder Wärmepumpe beim Netzbetreiber als steuerbar anmelden, zahlen Sie weniger Netzentgelt.</dd></dl>`
+         <dt>§ 14a EnWG</dt><dd>Wenn Sie Wallbox oder Wärmepumpe beim Netzbetreiber als steuerbar anmelden, zahlen Sie weniger Netzentgelt.</dd>
+         <dt>Festpreis-Tarif</dt><dd>Sie zahlen für jede Kilowattstunde gleich viel, egal wann. So haben es die meisten Haushalte.</dd>
+         <dt>Arbeitspreis und Grundpreis</dt><dd>Der Arbeitspreis ist der Preis pro kWh. Der Grundpreis ist ein fester Betrag pro Monat, egal wie viel Strom Sie nutzen.</dd>
+         <dt>Kilowattstunde (kWh)</dt><dd>So wird Strom gemessen. Ein Gerät mit 1.000 Watt braucht in einer Stunde 1 kWh.</dd>
+         <dt>Netzentgelt</dt><dd>Geld für den Transport des Stroms durch die Leitungen. Es ist je nach Region verschieden hoch.</dd>
+         <dt>Merit-Order</dt><dd>Die Reihenfolge der Kraftwerke nach Kosten. Das teuerste Kraftwerk, das noch gebraucht wird, bestimmt den Preis.</dd>
+         <dt>Dunkelflaute</dt><dd>Kein Wind und keine Sonne, oft im Winter. Dann ist Strom besonders teuer.</dd></dl>
+         <p class="links">Mehr erfahren:
+           <a href="https://www.smard.de" target="_blank" rel="noopener">SMARD</a> (Strommarktdaten der Bundesnetzagentur) ·
+           <a href="https://www.energy-charts.info" target="_blank" rel="noopener">Energy-Charts</a> (Fraunhofer ISE) ·
+           <a href="https://www.verbraucherzentrale.de" target="_blank" rel="noopener">Verbraucherzentrale</a> (unabhängige Beratung zu Tarifen) ·
+           <a href="https://www.epexspot.com" target="_blank" rel="noopener">EPEX Spot</a> (die Strombörse)</p>`
       : `<dl class="gloss"><dt>Day-ahead price</dt><dd>Market price for tomorrow, auctioned the day before.</dd>
          <dt>Final price</dt><dd>Market price plus grid fees, taxes, levies and VAT. What you actually pay.</dd>
          <dt>Dynamic tariff</dt><dd>Your price follows the market, quarter-hour by quarter-hour.</dd>
          <dt>Smart meter</dt><dd>Measures your use per quarter-hour. Required for a dynamic tariff.</dd>
-         <dt>§ 14a EnWG</dt><dd>Register a wallbox or heat pump as controllable and pay reduced grid fees.</dd></dl>`),
+         <dt>§ 14a EnWG</dt><dd>Register a wallbox or heat pump as controllable and pay reduced grid fees.</dd>
+         <dt>Fixed-price tariff</dt><dd>Every kilowatt-hour costs the same, whenever you use it. Most households have one.</dd>
+         <dt>Energy price and standing charge</dt><dd>The energy price is charged per kWh; the standing charge is a fixed monthly amount.</dd>
+         <dt>Kilowatt-hour (kWh)</dt><dd>The unit of electricity. A 1,000-watt appliance uses 1 kWh in one hour.</dd>
+         <dt>Grid fees</dt><dd>Paid for moving power through the lines; they differ by region.</dd>
+         <dt>Merit order</dt><dd>Power plants ranked by cost; the most expensive one still needed sets the price.</dd>
+         <dt>Dunkelflaute</dt><dd>No wind and no sun, mostly in winter. Power is especially expensive then.</dd></dl>
+         <p class="links">Learn more:
+           <a href="https://www.smard.de" target="_blank" rel="noopener">SMARD</a> (market data of the Federal Network Agency) ·
+           <a href="https://www.energy-charts.info" target="_blank" rel="noopener">Energy-Charts</a> (Fraunhofer ISE) ·
+           <a href="https://www.verbraucherzentrale.de" target="_blank" rel="noopener">Verbraucherzentrale</a> (independent consumer advice) ·
+           <a href="https://www.epexspot.com" target="_blank" rel="noopener">EPEX Spot</a> (the power exchange)</p>`),
   ];
 
   // cost per use at the typically cheapest vs. priciest hour, at the user's final price
+  // dynamic tariff: cheapest vs. priciest hour. Fixed price: what it costs you vs. what dynamic would cost at the cheapest hour
+  const fixedMode = S.tariff === "fixed";
   const cLo = st ? endPrice(st.perHour[st.lo]) : null, cHi = st ? endPrice(st.perHour[st.hi]) : null;
+  const colA = fixedMode ? S.fixed : cLo, colB = fixedMode ? cLo : cHi;
   const useRows = USES.map(([k, kwh]) => `<tr><td>${USE_NAMES[lang][k]}<small>${num(kwh, kwh < 10 ? 1 : 0)} kWh</small></td>
-    ${st ? `<td class="good">${eur(kwh * cLo / 100)}</td><td class="bad">${eur(kwh * cHi / 100)}</td>` : ""}</tr>`).join("");
+    ${st ? (fixedMode
+      ? `<td>${eur(kwh * colA / 100)}</td><td class="${colB < colA ? "good" : "bad"}">${eur(kwh * colB / 100)}</td>`
+      : `<td class="good">${eur(kwh * colA / 100)}</td><td class="bad">${eur(kwh * colB / 100)}</td>`) : ""}</tr>`).join("");
+  const useHead = !st ? "" : fixedMode
+    // short labels: the columns are 66 px wide; the note under the table explains them
+    ? `<th><span class="pill normal">${de ? "Fest" : "Fixed"}</span></th><th><span class="pill cheap">${st.lo} ${de ? "Uhr" : "h"}</span></th>`
+    : `<th><span class="pill cheap">${st.lo} ${de ? "Uhr" : "h"}</span></th><th><span class="pill pricey">${st.hi} ${de ? "Uhr" : "h"}</span></th>`;
+  const useNote = fixedMode
+    ? (de ? `Ungefähre Werte pro Nutzung. Links mit Ihrem Festpreis (${ct(S.fixed, 0)}), rechts mit einem dynamischen Tarif zur meist günstigsten Stunde. Mit Festpreis kostet es zu jeder Uhrzeit gleich viel. <b>Ein dynamischer Tarif lohnt sich vor allem bei großen Verbrauchern.</b>`
+          : `Typical values per use. Left: your fixed price (${ct(S.fixed, 0)}); right: a dynamic tariff at the usually cheapest hour. On a fixed price every hour costs the same. <b>A dynamic tariff pays off mainly for big consumers.</b>`)
+    : (de ? "Ungefähre Werte pro Nutzung, gerechnet mit Ihrem Preis zur günstigsten und zur teuersten Stunde. Bei der Waschmaschine geht es um Cent, beim E-Auto und bei der Wärmepumpe um Euro: <b>Am meisten sparen Sie bei großen Verbrauchern.</b>"
+          : "Typical values per use; costs at the average final price of the cheapest and priciest hour. For a washer it's cents, for an EV or heat pump it's euros: <b>big consumers pay off most.</b>");
   const rTxt = st?.r == null ? "" : st.r < -0.4
     ? (de ? `<p>Heute gilt: <b>Je mehr Ökostrom im Netz ist, desto günstiger ist der Strom.</b> Wer zur günstigen Zeit Strom nutzt, nutzt also meist auch Ökostrom.</p>`
           : `<p>Today: <b>the more green power in the grid, the cheaper it is.</b> Using power at cheap times usually means using green power.</p>`)
@@ -1545,9 +1744,8 @@ function railContent(st) {
         <div><div class="v">${st.negHours}</div><div class="k">${de ? "Stunden mit negativem Börsenpreis" : "hours with a negative market price"}</div></div>
       </div>${rTxt ? `<div style="margin-top:10px">${rTxt}</div>` : ""}`) : "",
     card("plug", de ? "Wie viel Strom braucht was?" : "What uses how much?",
-      `<table class="use-table"><thead><tr><th>${de ? "Gerät" : "Appliance"}</th>${st ? `<th><span class="pill cheap">${st.lo} ${de ? "Uhr" : "h"}</span></th><th><span class="pill pricey">${st.hi} ${de ? "Uhr" : "h"}</span></th>` : ""}</tr></thead><tbody>${useRows}</tbody></table>
-       <p style="margin-top:10px">${de ? "Ungefähre Werte pro Nutzung, gerechnet mit Ihrem Preis zur günstigsten und zur teuersten Stunde. Bei der Waschmaschine geht es um Cent, beim E-Auto und bei der Wärmepumpe um Euro: <b>Am meisten sparen Sie bei großen Verbrauchern.</b>"
-                                      : "Typical values per use; costs at the average final price of the cheapest and priciest hour. For a washer it's cents, for an EV or heat pump it's euros: <b>big consumers pay off most.</b>"}</p>`),
+      `<table class="use-table"><thead><tr><th>${de ? "Gerät" : "Appliance"}</th>${useHead}</tr></thead><tbody>${useRows}</tbody></table>
+       <p style="margin-top:10px">${useNote}</p>`),
     card("tip", de ? "Spartipps" : "Saving tips", de
       ? `<ul><li>Nutzen Sie die <b>Startzeitvorwahl</b>: Fast jede Wasch- und Spülmaschine kann später starten.</li>
          <li><b>Eco-Programme</b> dauern länger, brauchen aber viel weniger Strom. Und die Maschine immer voll beladen.</li>
@@ -1572,11 +1770,23 @@ function railContent(st) {
       ? `<ul><li>Die Feuerwehr rät: <b>Trockner und Waschmaschine nur laufen lassen, wenn jemand da ist</b>, also nicht, wenn Sie weg sind oder schlafen. Wählen Sie lieber eine günstige Zeit, in der Sie wach und zu Hause sind.</li>
          <li>Das Flusensieb im Trockner nach jedem Trocknen sauber machen.</li>
          <li>In Mietshäusern gilt meist <b>Nachtruhe von 22 bis 6 Uhr</b>. Schleudern um Mitternacht hört das ganze Haus.</li>
-         <li>Ein E-Auto regelmäßig nur an einer Wallbox oder einer geeigneten Steckdose laden, nie über eine Mehrfachsteckdose oder Kabeltrommel.</li></ul>`
+         <li>Ein E-Auto regelmäßig nur an einer Wallbox oder einer geeigneten Steckdose laden, nie über eine Mehrfachsteckdose oder Kabeltrommel.</li>
+         <li><b>Wallbox, Wärmepumpe und Heimspeicher</b> sind für den Betrieb ohne Aufsicht gebaut. Bei ihnen ist die Nacht kein Problem.</li>
+         <li>Große Geräte wie Trockner, Backofen oder Heizlüfter nicht an dieselbe Mehrfachsteckdose hängen.</li>
+         <li>Ohne Aquastop: nach dem Waschen den Wasserhahn der Waschmaschine zudrehen.</li>
+         <li>Ein funktionierender <b>Rauchmelder</b> in der Nähe gibt zusätzliche Sicherheit.</li>
+         <li>Die genauen Ruhezeiten stehen in Ihrer <b>Hausordnung</b> oder im Mietvertrag. Sonntags und an Feiertagen gilt oft den ganzen Tag Ruhe.</li>
+         <li>Tipp für Mietshäuser: Die günstigen Mittagsstunden passen gut, dann stört das Schleudern niemanden.</li></ul>`
       : `<ul><li>Fire brigades advise <b>not running dryers and washers unattended</b> or overnight. Pick a cheap window when you're home and awake.</li>
          <li>Clean the dryer's lint filter after every run.</li>
          <li>In apartment buildings, <b>quiet hours are usually 10 pm–6 am</b>: a midnight spin cycle wakes the whole house.</li>
-         <li>Charge an EV regularly only from a wallbox or a suitable socket, never through a power strip or cable reel.</li></ul>`),
+         <li>Charge an EV regularly only from a wallbox or a suitable socket, never through a power strip or cable reel.</li>
+         <li><b>Wallboxes, heat pumps and home batteries</b> are built to run unattended, so night-time is fine for them.</li>
+         <li>Don't plug big appliances like dryers, ovens or fan heaters into the same power strip.</li>
+         <li>No Aquastop? Turn off the washer's water tap after washing.</li>
+         <li>A working <b>smoke alarm</b> nearby adds safety.</li>
+         <li>Exact quiet hours are in your <b>house rules</b> or tenancy agreement; Sundays and public holidays are often quiet all day.</li>
+         <li>In flats, the cheap midday hours work well: nobody minds a spin cycle then.</li></ul>`),
   ];
   // balance the two rails: the dynamic-tariff card joins the explanations, negative prices join the facts
   const [L0, L1, L2, L3, L4, L5] = left, [R0, R1, R2, R3, R4, R5] = right;
