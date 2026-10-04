@@ -2,6 +2,8 @@
 Fetches German day-ahead electricity prices (15-minute slots, bidding zone
 DE-LU) and the renewable-share forecast from the energy-charts.info API
 (Fraunhofer ISE; prices from Bundesnetzagentur | SMARD.de, CC BY 4.0).
+When energy-charts is down, German prices come straight from the SMARD API
+(same numbers); the green share and the Europe map then keep their old data.
 
 Writes:
   data/prices_15min.csv    growing price history (unix_seconds, eur_mwh)
@@ -27,6 +29,7 @@ from zoneinfo import ZoneInfo
 import requests
 
 API = "https://api.energy-charts.info"
+SMARD = "https://www.smard.de/app/chart_data/4169/DE-LU"  # 4169 = day-ahead price DE-LU
 BERLIN = ZoneInfo("Europe/Berlin")
 ROOT = Path(__file__).resolve().parent.parent
 HISTORY_CSV = ROOT / "data" / "prices_15min.csv"
@@ -35,9 +38,12 @@ FIRST_RUN_DAYS = 60     # history pulled on the very first run
 CONTEXT_DAYS = 30       # days of history shipped to the website
 
 
-def get(endpoint: str, **params) -> dict:
+api_down = False  # set when energy-charts failed this run, so later calls don't wait on it again
+
+
+def get(endpoint: str, tries: int = 5, **params) -> dict:
     """GET with retries; energy-charts answers 429 when called too often."""
-    for attempt in range(5):
+    for attempt in range(tries):
         try:
             resp = requests.get(f"{API}/{endpoint}", params=params, timeout=60)
             if resp.status_code == 429 or resp.status_code >= 500:
@@ -45,22 +51,48 @@ def get(endpoint: str, **params) -> dict:
             resp.raise_for_status()
             return resp.json()
         except (requests.RequestException, ValueError) as exc:
-            if attempt == 4:
+            if attempt == tries - 1:
                 raise
             wait = 15 * (attempt + 1)
             print(f"  {endpoint}: {exc}, retrying in {wait}s", file=sys.stderr)
             time.sleep(wait)
 
 
-def fetch_prices(start: date, end: date) -> dict[int, float]:
-    """Prices from start (inclusive) to end (exclusive), as {unix_seconds: EUR/MWh}."""
-    j = get("price", bzn="DE-LU", start=start.isoformat(), end=end.isoformat())
-    return {int(t): float(p) for t, p in zip(j["unix_seconds"], j["price"]) if p is not None}
+def fetch_prices(start: date, end: date) -> tuple[dict[int, float], str]:
+    """Prices from start (inclusive) to end (exclusive), as {unix_seconds: EUR/MWh}, plus the source used."""
+    global api_down
+    try:
+        j = get("price", tries=3, bzn="DE-LU", start=start.isoformat(), end=end.isoformat())
+        return {int(t): float(p) for t, p in zip(j["unix_seconds"], j["price"]) if p is not None}, "energy-charts"
+    except (requests.RequestException, ValueError) as exc:
+        api_down = True
+        print(f"energy-charts unavailable ({exc}), using SMARD", file=sys.stderr)
+        return fetch_prices_smard(start, end), "smard"
+
+
+def fetch_prices_smard(start: date, end: date) -> dict[int, float]:
+    """Same prices from SMARD, which serves them in weekly files of 15-minute values (ms timestamps)."""
+    lo = int(datetime.combine(start, datetime.min.time(), BERLIN).timestamp())
+    hi = int(datetime.combine(end, datetime.min.time(), BERLIN).timestamp())
+    index = requests.get(f"{SMARD}/index_quarterhour.json", timeout=60)
+    index.raise_for_status()
+    prices = {}
+    for week in index.json()["timestamps"]:
+        if week // 1000 >= hi or week // 1000 + 8 * 86400 <= lo:  # weekly file outside the range
+            continue
+        resp = requests.get(f"{SMARD}/4169_DE-LU_quarterhour_{week}.json", timeout=60)
+        resp.raise_for_status()
+        for t, p in resp.json()["series"]:
+            if p is not None and lo <= t // 1000 < hi:
+                prices[t // 1000] = float(p)
+    if not prices:
+        raise RuntimeError("SMARD returned no prices")
+    return prices
 
 
 def fetch_green() -> dict[int, tuple[float, int]]:
     """Renewable share forecast (%) and the 'Stromampel' signal for today and tomorrow."""
-    j = get("signal", country="de")
+    j = get("signal", tries=1 if api_down else 3, country="de")
     return {int(t): (s, sig) for t, s, sig in zip(j["unix_seconds"], j["share"], j["signal"]) if s is not None}
 
 
@@ -135,6 +167,9 @@ def hourly_by_day(prices: dict[int, float], days: list[date]) -> dict[str, list]
 def update_europe(today: date) -> None:
     """Hourly day-ahead prices of Germany's neighbours for today and tomorrow -> docs/data/europe.json.
     Skipped when the file already holds complete data for both days (prices never change once set)."""
+    if api_down:
+        print("energy-charts is down, europe.json left as it is")
+        return
     tomorrow = today + timedelta(days=1)
     days = [today, tomorrow]
     try:
@@ -193,16 +228,20 @@ def update_germany() -> None:
 
     # Re-fetch from the last stored day (it may have been partial) through tomorrow
     start = local_day(max(history)) if history else today - timedelta(days=FIRST_RUN_DAYS)
-    fresh = fetch_prices(start, today + timedelta(days=2))
+    fresh, source = fetch_prices(start, today + timedelta(days=2))
     history.update(fresh)
     save_history(history)
-    print(f"prices: {len(fresh)} slots fetched from {start}, history now {len(history)} slots")
+    print(f"prices: {len(fresh)} slots fetched from {start} via {source}, history now {len(history)} slots")
 
     try:
         green = fetch_green()
     except requests.RequestException as exc:  # prices matter most; ship without green data
-        print(f"green share unavailable: {exc}", file=sys.stderr)
-        green = {}
+        print(f"green share unavailable: {exc}, keeping the last known values", file=sys.stderr)
+        try:
+            old = json.loads(LATEST_JSON.read_text(encoding="utf-8"))["slots"]
+            green = {s[0]: (s[2], s[3]) for s in old if s[2] is not None}
+        except (FileNotFoundError, ValueError, KeyError, IndexError):
+            green = {}
 
     window_start = int(datetime.combine(today, datetime.min.time(), BERLIN).timestamp())
     slots = [[ts, p, *green.get(ts, (None, None))] for ts, p in sorted(history.items()) if ts >= window_start]
@@ -219,7 +258,8 @@ def update_germany() -> None:
         "columns": ["unix_seconds", "eur_mwh", "renewable_share_pct", "signal"],
         "slots": slots,
         "history": daily_summary(history, context_days),
-        "source": "Bundesnetzagentur | SMARD.de via energy-charts.info (Fraunhofer ISE), CC BY 4.0",
+        "source": "Bundesnetzagentur | SMARD.de" + (" via energy-charts.info (Fraunhofer ISE)" if source == "energy-charts"
+                                                     else "") + ", CC BY 4.0",
     }
     # Only rewrite when the data changed, so runs without news don't create commits
     try:
