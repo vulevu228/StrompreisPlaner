@@ -669,9 +669,21 @@ async function load() {
     if (!S.data) $("app").innerHTML = `<div class="loading">${t("error")}</div>`;
     return;
   }
+  prepare();
+  render();
+}
+
+function prepare() {
+  // latest.json is written before midnight and the next run can come hours later: slots of a day that is
+  // over must not count as "tomorrow", and whether tomorrow is there is judged against the current date
+  const today = berlinParts(nowTs()).date;
+  S.today = today;
+  let rows = S.data.slots.filter(([ts]) => berlinParts(ts).date >= today);
+  if (!rows.length) rows = S.data.slots;  // data older than a day: show it rather than nothing
+  S.data.tomorrow_available = rows.filter(([ts]) => berlinParts(ts).date > today).length >= 80;
   // levels are relative to each day: cheapest third = cheap, most expensive third = expensive
   const byDay = {};
-  S.slots = S.data.slots.map(([ts, price, green, signal]) => {
+  S.slots = rows.map(([ts, price, green, signal]) => {
     // the forecast is renewables vs. consumption and exceeds 100 % when Germany exports; for people "fully green" is 100 %
     const s = { ts, price, green: green == null ? null : Math.min(100, green), signal, day: berlinParts(ts).date };
     (byDay[s.day] ??= []).push(price);
@@ -687,7 +699,6 @@ async function load() {
     s.glevel = s.green == null || !gs ? null
       : s.green >= quantile(gs, 2 / 3) ? "greenHigh" : s.green <= quantile(gs, 1 / 3) ? "greenLow" : "greenMid";
   }
-  render();
 }
 
 const nowTs = () => Date.now() / 1000;
@@ -1842,7 +1853,11 @@ syncIcon();
 render();
 load();
 // keep "now" current; fetch new data every 15 minutes (tomorrow's prices arrive in the afternoon)
-setInterval(() => { if (S.data) { renderKpis(); drawCharts(); renderHero(); } }, 60000);
+setInterval(() => {
+  if (!S.data) return;
+  if (S.today !== berlinParts(nowTs()).date) { prepare(); render(); return; }  // midnight passed: yesterday drops out
+  renderKpis(); drawCharts(); renderHero();
+}, 60000);
 setInterval(load, 15 * 60000);
 </script>
 </body>
