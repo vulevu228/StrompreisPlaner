@@ -40,7 +40,7 @@ energy-charts.info API ──> scripts/fetch_prices.py ──> docs/data/*.json 
   published around 13:00 German time) and commits only when the data changed.
 - `docs/index.html` is a single static page (Chart.js, no build step). Visitors never call the API.
   Chart.js and the Inter font are served from `docs/vendor/`, so the page loads nothing from third parties.
-- GitHub sometimes skips scheduled runs; a small watchdog on the maintainer's PC starts the workflow
+- GitHub sometimes skips scheduled runs; a small watchdog on the maintainer's own Raspberry Pi starts the workflow
   when tomorrow's prices are still missing in the afternoon.
 - `scripts/build_map.py` is a one-time build of the Europe map outline from Natural Earth
   (`docs/data/europe-map.json`); it needs `shapely`, which the workflow does not.
